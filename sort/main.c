@@ -8,6 +8,7 @@
 #include"insertion.h"
 #include"serial_merge.h"
 #include"basic_par_merge.h"
+#include"parallel_merge_sort.h"
 #include"quick.h"
 #include"helpers_sort.h"
 #include"ull_cmp.h"
@@ -95,6 +96,9 @@ int main(int argc, char **argv) {
 #elif defined(BPMS)
 	basic_p_ms(x, 0, items_to_read); 
 	output_fn = "BPMS"; 
+#elif defined(PMS)
+	pms(x, 0, items_to_read); 
+	output_fn = "PMS"; 
 #endif
 
 
