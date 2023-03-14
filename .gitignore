@@ -37,6 +37,7 @@
 *.x86_64
 *.hex
 sort/sort
+fib/fib
 
 # Debug files
 *.dSYM/
