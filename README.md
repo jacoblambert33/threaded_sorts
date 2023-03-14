@@ -1,6 +1,6 @@
 # multithreadedMerge
 
-This project started with one goal in mind: implement multithreaded mergesort from CLRS chapter 27. 
+This project started with one goal in mind: implement multithreaded mergesort from CLRS chapter 27. See: http://cs403.cs.ua.edu/fall2018/CLRS%20Introduction%20to%20Algorithms%20chapter%2027.pdf
 
 I chose Pthreads to do divide and conquer as I'd made an attempt some time ago to do this with OpenMP. I didn't see great results then (although that could be due to bad implementation of Tasks), but I wanted to have more control over the threads. 
 
