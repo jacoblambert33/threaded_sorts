@@ -30,3 +30,16 @@ long *dequeue() {
     return ans;
   }
 }
+
+
+/* 
+NOTES: considering a solution where a static number of threads are created and reused. a threadpool. 
+
+i can't let my threads die. they are doing the work. so i can't return from
+these threads, i.e., i can't use join. so - try to use the serial fib function inside the threading function. but then i have no way to return the value to the calling function. 
+for academic purposes, can i extend the queue to hold the return value and the thread itself. the negative consequences of this approach is lots of extra careful work. what about a cutoff instead of a queue? let's
+try a cutoff.
+
+*/
+
+
