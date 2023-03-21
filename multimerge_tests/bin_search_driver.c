@@ -24,6 +24,8 @@ int main(int argc, char **argv) {
     printf("needle %lld is at index %d of haystack.\n", needle, index);
   }
 
+	free(haystack);
+
   return 0;
 }
 
