@@ -41,6 +41,11 @@ mersenne/rand64*
 sort/sort
 fib/fib
 mersenne/prng
+multimerge_tests/test_pms
+multimerge_tests/test_p_merge
+multimerge_tests/bin_search
+
+
 
 # Debug files
 *.dSYM/

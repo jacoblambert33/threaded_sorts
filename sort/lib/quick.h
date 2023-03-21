@@ -1,7 +1,6 @@
 #ifndef QUICK_H
 #define QUICK_H
 
-void quick(unsigned long long a[], int lo, int hi); 
+void quick(unsigned long long a[], int lo, int hi);
 
-#endif //QUICK_H
-
+#endif  // QUICK_H
