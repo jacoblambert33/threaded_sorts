@@ -1,3 +1,5 @@
+#include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -5,9 +7,17 @@
 
 int cmpfunc(const void *a, const void *b);
 
+// TESTS:
+
+void find_every_element(unsigned long long *haystack, int size);
+
+void find_elements_outside_bounds(unsigned long long *haystack, int size);
+
 int main(int argc, char **argv) {
+  // setup common to all tests:
+  //  precondition for binary search is a sorted array:
+
   int n = 50;
-  // unsigned long long needle = 1025202362;
 
   unsigned long long *haystack = malloc((sizeof *haystack) * n);
 
@@ -17,16 +27,38 @@ int main(int argc, char **argv) {
 
   qsort(haystack, n, sizeof(*haystack), cmpfunc);
 
-  for (int i = 0; i < n; i++) {
-    unsigned long long needle = haystack[i];
-    int index = binary_search(needle, haystack, 0, n - 1);
+  // TEST 1
+  find_every_element(haystack, n);
 
-    printf("needle %lld is at index %d of haystack.\n", needle, index);
-  }
+  // TEST 2
+  find_elements_outside_bounds(haystack, n);
 
-	free(haystack);
+  free(haystack);
 
   return 0;
+}
+
+void find_every_element(unsigned long long *haystack, int size) {
+  for (int i = 0; i < size; i++) {
+    unsigned long long needle = haystack[i];
+    int index = binary_search(needle, haystack, 0, size - 1);
+    assert(index >= 0 && index < size);
+    printf("needle %lld is at index %d of haystack.\n", needle, index);
+  }
+}
+
+void find_elements_outside_bounds(unsigned long long *haystack, int size) {
+  unsigned long long needle = 0L;
+  // find an element smaller than every element in the array:
+  int index = binary_search(needle, haystack, 0, size - 1);
+  printf("needle %lld is at index %d of haystack.\n", needle, index);
+  assert(index == 0);
+
+  // find an element larger than every element in the array:
+  needle = 9991025202362L;
+  index = binary_search(needle, haystack, 0, size - 1);
+  printf("needle %lld is at index %d of haystack.\n", needle, index);
+  assert(index == size);
 }
 
 int cmpfunc(const void *a, const void *b) {

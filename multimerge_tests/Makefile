@@ -3,8 +3,10 @@
 # 2. Archive it: e.g., 
 #    cd libs/
 #		 ar rcs libbs.a binary_search.o
+#		 cd ..
 # 3. Now compile here using an -I(ncludes) for the header at ../sort/lib and -L(ibraries) at libs and use the specific file we moved into libs, e.g., libbs.a (the way you reference it is without reference to lib or .a in the name. It MUST be the last command line option to gcc - it has to come after the -o for sure. 
 # The goal is to remove code duplication. Test the components where they are. I think the above solution is acceptable. I'm not positive it's the best solution. 
+# The current negative to this approach is I have to manually copy the complete file to this folder before I test it. That's not cool or fun, but right now it's better to me than making the Makefile a lot more complex. 
 
 CC=gcc
 INC=-I../sort/lib/

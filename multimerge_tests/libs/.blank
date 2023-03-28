@@ -1,0 +1,4 @@
+Are there files in the folder? Git doesn't track folders, only files; you can't add an empty folder to a Git repo. However, you can put an empty file in that folder (.gitignore or .blank are common file names) and add those files to the folder
+
+from: https://stackoverflow.com/questions/32000525/git-not-adding-existing-folder
+
