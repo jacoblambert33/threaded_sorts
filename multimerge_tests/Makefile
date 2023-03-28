@@ -13,22 +13,27 @@ INC=-I../sort/lib/
 LIB=-Llibs/
 CFLAGS=-Wall -g $(INC) $(LIB)
 
-all: bin_search test_p_merge test_pms
+all: bin_search_test helpers_test test_p_merge test_pms
 #all: bin_search 
 
-bin_search: bin_search_driver.c debug.h
+bin_search_test: bin_search_driver.c debug.h
 	$(CC) $(CFLAGS) $^ -o $@ -lbs
+
+helpers_test: helpers_driver.c debug.h
+	$(CC) $(CFLAGS) $^ -o $@ -lhelpers
 
 #test_p_merge: test_p_merge.c binary_search.o helpers_sort.o p_merge.o debug.h
-test_p_merge: test_p_merge.c helpers_sort.o p_merge.o debug.h
-	$(CC) $(CFLAGS) $^ -o $@ -lbs
+#test_p_merge: test_p_merge.c helpers_sort.o p_merge.o debug.h
+test_p_merge: test_p_merge.c p_merge.o debug.h
+	$(CC) $(CFLAGS) $^ -o $@ -lbs -lhelpers
 
 #test_pms: test_pms.c parallel_merge_sort.o p_merge.o binary_search.o helpers_sort.o debug.h 
-test_pms: test_pms.c parallel_merge_sort.o p_merge.o helpers_sort.o debug.h 
-	$(CC) $(CFLAGS) $^ -o $@ -lbs
+#test_pms: test_pms.c parallel_merge_sort.o p_merge.o helpers_sort.o debug.h 
+test_pms: test_pms.c parallel_merge_sort.o p_merge.o debug.h 
+	$(CC) $(CFLAGS) $^ -o $@ -lbs -lhelpers
 
-helpers_sort.o: helpers_sort.c helpers_sort.h debug.h
-	$(CC) $(CFLAGS) -c $^
+#helpers_sort.o: helpers_sort.c helpers_sort.h debug.h
+#	$(CC) $(CFLAGS) -c $^
 
 p_merge.o: p_merge.c p_merge.h debug.h
 	$(CC) $(CFLAGS) -c $^ -lbs
@@ -38,4 +43,4 @@ parallel_merge_sort.o: parallel_merge_sort.c parallel_merge_sort.h debug.h
 
 clean:
 #	rm -rf bin_search binary_search.o test_p_merge p_merge.o test_pms parallel_merge_sort.o	
-	rm -rf bin_search test_p_merge test_pms *.o
+	rm -rf bin_search_test helpers_test test_p_merge test_pms *.o
