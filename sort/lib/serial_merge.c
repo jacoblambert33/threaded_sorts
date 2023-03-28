@@ -70,8 +70,8 @@ void merge(unsigned long long a[], unsigned long long aux[], int lo, int mid,
   int i = lo, j = mid;
   // for (int k = lo; k <= hi; k++) {
   for (int k = lo; k < hi; k++) {
-    // if (i > mid)											 a[k] =
-    // aux[j++];
+    // if (i > mid)											 a[k]
+    // = aux[j++];
     if (i >= mid) a[k] = aux[j++];
     // else if (j > hi)               a[k] = aux[i++];
     else if (j >= hi)
