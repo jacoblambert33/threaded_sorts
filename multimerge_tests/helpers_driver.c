@@ -5,7 +5,7 @@
 
 #include "helpers_sort.h"
 
-int cmpfunc(const void *a, const void *b);
+// int cmpfunc(const void *a, const void *b);
 
 // TESTS:
 
@@ -83,6 +83,7 @@ void test_is_sorted(unsigned long long *haystack, int size) {
   assert(!is_sorted(haystack, 0, size));
 }
 
+/*
 int cmpfunc(const void *a, const void *b) {
   const unsigned long long ai = *(const unsigned long long *)a;
   const unsigned long long bi = *(const unsigned long long *)b;
@@ -95,3 +96,4 @@ int cmpfunc(const void *a, const void *b) {
     return 0;
   }
 }
+*/

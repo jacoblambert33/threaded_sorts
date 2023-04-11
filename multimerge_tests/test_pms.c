@@ -8,7 +8,7 @@
 #include "p_merge.h"
 #include "parallel_merge_sort.h"
 
-int cmpfunc(const void *a, const void *b);
+// int cmpfunc(const void *a, const void *b);
 
 bool is_sorted(unsigned long long a[], int lo, int hi);
 
@@ -22,6 +22,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 
+/*
 int cmpfunc(const void *a, const void *b) {
   const unsigned long long ai = *(const unsigned long long *)a;
   const unsigned long long bi = *(const unsigned long long *)b;
@@ -34,6 +35,7 @@ int cmpfunc(const void *a, const void *b) {
     return 0;
   }
 }
+*/
 
 void run_pms() {
   int n = 8;  // 10000; //4096; //2048; //260; //258; //256; // 64;

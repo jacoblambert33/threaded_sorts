@@ -111,7 +111,7 @@ void book_p_merge_sort(unsigned long long A[], int p, int r,
     int qp = q - p + 1;
     book_p_merge_sort(A, p, q, T, 1);
     book_p_merge_sort(A, q + 1, r, T, qp + 1);
-    book_api_par_merge(T, 1, qp, qp + 1, n, B, s);
+    parallel_merge_t(T, 1, qp, qp + 1, n, B, s);
 
     free(T);
   }
@@ -154,7 +154,7 @@ void *book_serial(void *prm) {
                                .start = qp + 1};
     book_serial((void *)&right);
     // book_p_merge_sort(left.a, q+1, left.hi, T, qp + 1);
-    book_api_par_merge(T, 1, qp, qp + 1, n, input.result, input.start);
+    parallel_merge_t(T, 1, qp, qp + 1, n, input.result, input.start);
 
     // free(T);
   }
@@ -223,7 +223,7 @@ void *book_parallel(void *prm) {
 
     // book_p_merge_sort(left.a, left.lo, q, T, 1);
     // book_p_merge_sort(left.a, q+1, left.hi, T, qp + 1);
-    book_api_par_merge(T, 1, qp, qp + 1, n, input.result, input.start);
+    parallel_merge_t(T, 1, qp, qp + 1, n, input.result, input.start);
 
     // free(T);
   }
@@ -272,8 +272,7 @@ void *serial(void *fpms_params) {
     serial(&right);
 
     // api_par_merge(left.aux, len, 1, mid_prime, mid_prime+1, len, left.start);
-    book_api_par_merge(tmp, 1, mid_prime, mid_prime + 1, len, result,
-                       incoming_s);
+    parallel_merge_t(tmp, 1, mid_prime, mid_prime + 1, len, result, incoming_s);
     // api_par_merge_output(left.aux, b, len, 1, mid_prime, mid_prime+1, len,
     // left.start); api_par_merge_output(left.aux, b, len, 1, mid_prime,
     // mid_prime+1, len, left.start); free(aux);
@@ -336,8 +335,8 @@ void *pms_aux(void *fpms_params) {
       pthread_join(t, NULL);
     }
 
-    book_api_par_merge(left.tmp, 1, mid_prime, mid_prime + 1, len, left.result,
-                       left.start);
+    parallel_merge_t(left.tmp, 1, mid_prime, mid_prime + 1, len, left.result,
+                     left.start);
 
     free(tmp);
 

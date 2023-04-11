@@ -42,7 +42,7 @@ sort/sort
 fib/fib
 mersenne/prng
 multimerge_tests/test_pms
-multimerge_tests/test_p_merge
+multimerge_tests/p_merge_test
 multimerge_tests/bin_search_test
 multimerge_tests/helpers_test
 
