@@ -45,6 +45,7 @@ multimerge_tests/test_pms
 multimerge_tests/p_merge_test
 multimerge_tests/bin_search_test
 multimerge_tests/helpers_test
+multimerge_tests/fourth_test
 
 
 

@@ -5,8 +5,11 @@ CFLAGS=-Wall -g -std=gnu11 -lpthread -I lib/ -D${ST}
 
 all: sort 
 
-sort: main.c lib/insertion.o lib/helpers_sort.o lib/serial_merge.o lib/basic_par_merge.o lib/quick.o lib/p_merge.o lib/binary_search.o lib/parallel_merge_sort.o
+sort: main.c lib/insertion.o lib/helpers_sort.o lib/serial_merge.o lib/basic_par_merge.o lib/quick.o lib/p_merge.o lib/binary_search.o lib/parallel_merge_sort.o lib/p_merge_sort.o
 	$(CC) $(CFLAGS) $^ -o $@
+
+lib/p_merge_sort.o: lib/p_merge_sort.c lib/p_merge_sort.h 
+	$(CC) $(CFLAGS) -c $< -o $@
 
 lib/basic_par_merge.o: lib/basic_par_merge.c lib/basic_par_merge.h 
 	$(CC) $(CFLAGS) -c $< -o $@

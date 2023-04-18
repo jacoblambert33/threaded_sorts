@@ -5,8 +5,6 @@
 
 #include "helpers_sort.h"
 
-// int cmpfunc(const void *a, const void *b);
-
 // TESTS:
 
 void test_less();
@@ -54,6 +52,8 @@ void test_less() {
 
   ans = less(v, v);
   assert(!ans);  // assert v is NOT less than v.
+
+  printf("SUCCESS: less function.\n");
 }
 
 void test_exch(unsigned long long *haystack, int size) {
@@ -74,6 +74,8 @@ void test_exch(unsigned long long *haystack, int size) {
   w = haystack[size - 1];
   assert(v == 2145174067);
   assert(w == 35005211);
+
+  printf("SUCCESS: exch function.\n");
 }
 
 void test_is_sorted(unsigned long long *haystack, int size) {
@@ -81,19 +83,6 @@ void test_is_sorted(unsigned long long *haystack, int size) {
   assert(is_sorted(haystack, 0, size));
   exch(haystack, size - 2, size - 1);
   assert(!is_sorted(haystack, 0, size));
-}
 
-/*
-int cmpfunc(const void *a, const void *b) {
-  const unsigned long long ai = *(const unsigned long long *)a;
-  const unsigned long long bi = *(const unsigned long long *)b;
-
-  if (ai < bi) {
-    return -1;
-  } else if (ai > bi) {
-    return 1;
-  } else {
-    return 0;
-  }
+  printf("SUCCESS: is_sorted function.\n");
 }
-*/
