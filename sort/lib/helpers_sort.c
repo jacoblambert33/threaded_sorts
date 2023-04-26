@@ -31,3 +31,30 @@ int cmpfunc(const void *a, const void *b) {
     return 0;
   }
 }
+
+/*
+FIND-SPLIT-POINT(A; p; r; x)
+1 low = p // low end of search range
+2 high = r + 1 // high end of search range
+3 while low < high // more than one element?
+4 mid = (low + high)2 // midpoint of range
+5 if x <= A[mid] // is answer q <= mid?
+6 high = mid // narrow search to AŒlow W mid�
+7 else low = mid + 1 // narrow search to AŒmid C 1 W high�
+8 return low
+*/
+int find_split_point(unsigned long long a[], int p, int r, unsigned long long x) {
+  int low = p;
+  int high = r + 1;
+  while (low < high) {
+    int mid = (low + high) / 2;
+    if (x <= a[mid])
+      high = mid;
+    else
+      low = mid + 1;
+  }
+  return low;
+}
+
+
+

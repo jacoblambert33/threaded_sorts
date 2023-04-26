@@ -4,7 +4,7 @@
 
 #include "helpers_sort.h"
 
-// void insertion_sort(uint64_t a[], int lo, int hi) {
+
 void insertion_sort(unsigned long long a[], int lo, int hi) {
   for (int i = lo + 1; i < hi; i++) {
     for (int j = i; j > lo && less(a[j], a[j - 1]); j--) {

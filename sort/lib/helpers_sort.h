@@ -14,6 +14,13 @@ bool less(unsigned long long v, unsigned long long w);
 //  IMPORTANT: j cannot BE the length of the array.
 void exch(unsigned long long a[], int i, int j);
 
+// i.e., binary search.
+//  perhaps should assert(is_sorted) before calling; however, this function
+//  O(log n) and that one O(n) so it would slow us down unnecessarily; just
+//  don't call it on an unsorted array.
+int find_split_point(unsigned long long a[], int p, int r,
+                     unsigned long long x);
+
 // is the array a[lo..hi) sorted
 // NOTE: is_sorted MUST take the length of the array as the upper bound
 //  (if you intend to check the entire array.)

@@ -8,8 +8,8 @@ FIND-SPLIT-POINT(A; p; r; x)
 3 while low < high // more than one element?
 4 mid = (low + high)2 // midpoint of range 
 5 if x <= A[mid] // is answer q <= mid?
-6 high = mid // narrow search to AŒlow W mid�
-7 else low = mid + 1 // narrow search to AŒmid C 1 W high�
+6 high = mid // narrow search to A[low : mid]
+7 else low = mid + 1 // narrow search to A[mid + 1 : high]
 8 return low
 """
 def find_split_point(a, p, r, x): 

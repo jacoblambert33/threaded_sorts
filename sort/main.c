@@ -10,6 +10,7 @@
 #include "helpers_sort.h"
 #include "insertion.h"
 #include "parallel_merge_sort.h"
+#include "pms4.h"
 #include "quick.h"
 #include "serial_merge.h"
 #include "ull_cmp.h"
@@ -60,7 +61,7 @@ int main(int argc, char **argv) {
 
   printf("attempting to read list of integers.\n");
 
-  printf("how big is unsigned long long? %ld\n", sizeof(unsigned long long));
+  // printf("how big is unsigned long long? %ld\n", sizeof(unsigned long long));
 
   // numread = fread(x, sizeof(unsigned long long), 8, myfile);
   // numread = fread(x, ARRAY_SIZE(x), sizeof(*x), myfile);
@@ -96,7 +97,8 @@ int main(int argc, char **argv) {
   basic_p_ms(x, 0, items_to_read);
   output_fn = "BPMS";
 #elif defined(PMS)
-  pms(x, 0, items_to_read);
+  // pms4_s(x, 0, items_to_read-1);
+  pms4_t(x, 0, items_to_read - 1, 2048);
   output_fn = "PMS";
 #endif
 

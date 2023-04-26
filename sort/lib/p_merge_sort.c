@@ -8,41 +8,8 @@
 #include <stdlib.h>
 
 #include "helpers_sort.h"
+#include "p_merge_new.h"
 
-struct pms_params {
-  unsigned long long *a;
-  unsigned long long *result;
-  unsigned long long *tmp;
-  int lo;
-  int hi;
-  int start;
-};
-
-size_t this_threadcount = 0;
-
-/*
-FIND-SPLIT-POINT(A; p; r; x)
-1 low = p // low end of search range
-2 high = r + 1 // high end of search range
-3 while low < high // more than one element?
-4 mid = (low + high)2 // midpoint of range
-5 if x <= A[mid] // is answer q <= mid?
-6 high = mid // narrow search to AŒlow W mid�
-7 else low = mid + 1 // narrow search to AŒmid C 1 W high�
-8 return low
-*/
-int find_split_point(unsigned long long a[], int p, int r, int x) {
-  int low = p;
-  int high = r + 1;
-  while (low < high) {
-    int mid = (low + high) / 2;
-    if (x <= a[mid])
-      high = mid;
-    else
-      low = mid + 1;
-  }
-  return low;
-}
 
 /*
 P-MERGE-AUX(A; p1; r1; p2; r2; B; p3)
@@ -63,6 +30,12 @@ P-MERGE-AUX(A; p1; r1; p2; r2; B; p3)
 15 sync // wait for spawns
 "
 */
+
+/* MAYBE  use the individual component in p_merge_new.h 
+	but right now that's private and will stay that way. 
+worried about conflicting types as i attempt to retain both this and that version
+*/
+
 void p_merge_aux(unsigned long long a[], int p1, int r1, int p2, int r2,
                  unsigned long long b[], int p3) {
   if ((p1 > r1) && (p2 > r2)) return;
@@ -91,6 +64,7 @@ void p_merge_aux(unsigned long long a[], int p1, int r1, int p2, int r2,
   p_merge_aux(a, p1, q1 - 1, p2, q2 - 1, b, p3);
   p_merge_aux(a, q1 + 1, r1, q2, r2, b, q3 + 1);
 }
+
 
 /*
 P-MERGE(A; p; q; r)
