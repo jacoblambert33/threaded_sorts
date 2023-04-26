@@ -1,7 +1,7 @@
 # Text files
 mersenne/rand64*
 sort/doc/rand64_list.txt.*
-sort/results
+sort/results/sorted*
 
 # Prerequisites
 *.d
