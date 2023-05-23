@@ -43,7 +43,8 @@ FIND-SPLIT-POINT(A; p; r; x)
 7 else low = mid + 1 // narrow search to AŒmid C 1 W high�
 8 return low
 */
-int find_split_point(unsigned long long a[], int p, int r, unsigned long long x) {
+int find_split_point(unsigned long long a[], int p, int r,
+                     unsigned long long x) {
   int low = p;
   int high = r + 1;
   while (low < high) {
@@ -55,6 +56,3 @@ int find_split_point(unsigned long long a[], int p, int r, unsigned long long x)
   }
   return low;
 }
-
-
-

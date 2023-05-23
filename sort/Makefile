@@ -5,7 +5,9 @@ CFLAGS=-Wall -g -std=gnu11 -lpthread -I lib/ -D${ST}
 
 all: sort 
 
-sort: main.c lib/insertion.o lib/helpers_sort.o lib/serial_merge.o lib/basic_par_merge.o lib/quick.o lib/p_merge.o lib/binary_search.o lib/parallel_merge_sort.o lib/p_merge_new.o lib/p_merge_sort.o lib/pms4.o
+sort: main.c lib/insertion.o lib/helpers_sort.o lib/serial_merge.o lib/basic_par_merge.o lib/quick.o lib/p_merge.o lib/binary_search.o lib/parallel_merge_sort.o lib/p_merge_new.o lib/p_merge_sort.o lib/pms4.o lib/lsd_radix.o lib/msd_radix.o lib/quick3_radix.o
+
+
 	$(CC) $(CFLAGS) $^ -o $@
 
 lib/pms4.o: lib/pms4.c lib/pms4.h 
@@ -42,6 +44,15 @@ lib/p_merge.o: lib/p_merge.c lib/p_merge.h
 #	$(CC) $(CFLAGS) -c $< -o $@
 
 lib/quick.o: lib/quick.c lib/quick.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+lib/lsd_radix.o: lib/lsd_radix.c lib/lsd_radix.h 
+	$(CC) $(CFLAGS) -c $< -o $@
+
+lib/msd_radix.o: lib/msd_radix.c lib/msd_radix.h 
+	$(CC) $(CFLAGS) -c $< -o $@
+
+lib/quick3_radix.o: lib/quick3_radix.c lib/quick3_radix.h 
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

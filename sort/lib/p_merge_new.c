@@ -8,8 +8,6 @@
 
 #include "helpers_sort.h"
 
-
-
 // private declaration so impl is meant to go in c file.
 struct p_merge_params {
   unsigned long long *a;
@@ -22,10 +20,8 @@ struct p_merge_params {
   int cutoff;
 };
 
-
 // for debugging/investigation - count the number of threads we're spawning.
 int p_merge_new_count = 0;
-
 
 /*
 P-MERGE-AUX(A; p1; r1; p2; r2; B; p3)
@@ -47,7 +43,7 @@ P-MERGE-AUX(A; p1; r1; p2; r2; B; p3)
 "
 */
 void p_merge_aux_p(unsigned long long a[], int p1, int r1, int p2, int r2,
-                 unsigned long long b[], int p3) {
+                   unsigned long long b[], int p3) {
   if ((p1 > r1) && (p2 > r2)) return;
 
   if ((r1 - p1) < (r2 - p2)) {
@@ -75,13 +71,11 @@ void p_merge_aux_p(unsigned long long a[], int p1, int r1, int p2, int r2,
   p_merge_aux_p(a, q1 + 1, r1, q2, r2, b, q3 + 1);
 }
 
-
-//threaded parallel merge
+// threaded parallel merge
 void *p_merge_aux_t(void *params) {
+  p_merge_new_count++;
 
-	p_merge_new_count++;
-
-	struct p_merge_params p = *((struct p_merge_params *)params);
+  struct p_merge_params p = *((struct p_merge_params *)params);
 
   if ((p.p1 > p.r1) && (p.p2 > p.r2)) return NULL;
 
@@ -104,55 +98,69 @@ void *p_merge_aux_t(void *params) {
 
   p.b[q3] = x;
 
-	// serial for small arrays:
-	// need a cutoff to avoid huge numbers of threads and the overhead there. 
-	// one option is to use the length of the first half as a guide:
-	int len = p.r1 - p.p1;
-	if (len < p.cutoff) {
-		
-		p_merge_aux_p(p.a, p.p1, q1 - 1, p.p2, q2 - 1, p.b, p.p3);
-		p_merge_aux_p(p.a, q1 + 1, p.r1, q2, p.r2, p.b, q3 + 1);
+  // serial for small arrays:
+  // need a cutoff to avoid huge numbers of threads and the overhead there.
+  // one option is to use the length of the first half as a guide:
+  int len = p.r1 - p.p1;
+  if (len < p.cutoff) {
+    p_merge_aux_p(p.a, p.p1, q1 - 1, p.p2, q2 - 1, p.b, p.p3);
+    p_merge_aux_p(p.a, q1 + 1, p.r1, q2, p.r2, p.b, q3 + 1);
 
-		return NULL;
-	}
+    return NULL;
+  }
 
-	//prep data structures for recursion:
-	struct p_merge_params left = { .a = p.a, .p1 = p.p1, .r1 = q1-1, .p2 = p.p2, .r2 = q2-1, .b = p.b, .p3 = p.p3, .cutoff = p.cutoff };  
-	struct p_merge_params right = { .a = p.a, .p1 = q1+1, .r1 = p.r1, .p2 = q2, .r2 = p.r2, .b = p.b, .p3 = q3+1, .cutoff = p.cutoff };  
+  // prep data structures for recursion:
+  struct p_merge_params left = {.a = p.a,
+                                .p1 = p.p1,
+                                .r1 = q1 - 1,
+                                .p2 = p.p2,
+                                .r2 = q2 - 1,
+                                .b = p.b,
+                                .p3 = p.p3,
+                                .cutoff = p.cutoff};
+  struct p_merge_params right = {.a = p.a,
+                                 .p1 = q1 + 1,
+                                 .r1 = p.r1,
+                                 .p2 = q2,
+                                 .r2 = p.r2,
+                                 .b = p.b,
+                                 .p3 = q3 + 1,
+                                 .cutoff = p.cutoff};
 
-	pthread_t t;
-	pthread_create(&t, NULL, p_merge_aux_t, &right); 
+  pthread_t t;
+  pthread_create(&t, NULL, p_merge_aux_t, &right);
 
   p_merge_aux_t(&left);
-	pthread_join(t, NULL); 
+  pthread_join(t, NULL);
 
-	return NULL;
+  return NULL;
 }
 
-
-//API
+// API
 void p_merge_new(unsigned long long a[], unsigned long long b[], int p, int q,
                  int r) {
-
   p_merge_aux_p(a, p, q, q + 1, r, b, p);
 
   for (int i = p; i < r + 1; i++) a[i] = b[i];
 }
 
-//API
+// API
 void p_merge_new_t(unsigned long long a[], unsigned long long b[], int p, int q,
-                 int r, int cutoff) {
-
-
-	struct p_merge_params params = { .a = a, .p1 = p, .r1 = q, .p2 = q+1, .r2 = r, .b = b, .p3 = p, .cutoff = cutoff };  
+                   int r, int cutoff) {
+  struct p_merge_params params = {.a = a,
+                                  .p1 = p,
+                                  .r1 = q,
+                                  .p2 = q + 1,
+                                  .r2 = r,
+                                  .b = b,
+                                  .p3 = p,
+                                  .cutoff = cutoff};
 
   p_merge_aux_t(&params);
 
   for (int i = p; i < r + 1; i++) a[i] = b[i];
 
-	//printf("[p_merge_new_t] total threads used: %d\n", p_merge_new_count);  
-
+  // printf("[p_merge_new_t] total threads used: %d\n", p_merge_new_count);
 }
 
-//END
-
+// END

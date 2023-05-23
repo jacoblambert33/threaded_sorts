@@ -1,6 +1,6 @@
 # Text files
 mersenne/rand64*
-sort/doc/rand64_list.txt.*
+sort/doc/rand64_list.txt*
 sort/results/sorted*
 
 # Prerequisites
@@ -51,6 +51,9 @@ multimerge_tests/fourth_test
 multimerge_tests/pms_test
 multimerge_tests/pms4_test
 multimerge_tests/p_merge_new_test
+multimerge_tests/lsd_test
+multimerge_tests/msd_test
+multimerge_tests/quick3_test
 
 
 

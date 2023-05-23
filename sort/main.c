@@ -9,6 +9,7 @@
 #include "basic_par_merge.h"
 #include "helpers_sort.h"
 #include "insertion.h"
+#include "lsd_radix.h"
 #include "parallel_merge_sort.h"
 #include "pms4.h"
 #include "quick.h"
@@ -100,6 +101,9 @@ int main(int argc, char **argv) {
   // pms4_s(x, 0, items_to_read-1);
   pms4_t(x, 0, items_to_read - 1, 2048);
   output_fn = "PMS";
+#elif defined(LSDR)
+  lsd_sort(x, items_to_read);
+  output_fn = "LSDR";
 #endif
 
   clock_t difference = clock() - before;

@@ -13,10 +13,9 @@ void run_large();
 void run_threaded();
 
 int main(int argc, char **argv) {
-
   run_many_parts_merge();
   run_large();
-	run_threaded();
+  run_threaded();
 
   return 0;
 }
@@ -29,7 +28,7 @@ void run_many_parts_merge() {
   int sets = 8;
 
   unsigned long long *haystack = malloc((sizeof *haystack) * n * sets);
-  unsigned long long *aux= malloc((sizeof *aux) * n * sets);
+  unsigned long long *aux = malloc((sizeof *aux) * n * sets);
 
   for (int i = 0; i < n * sets; i++) {
     haystack[i] = rand();
@@ -43,10 +42,10 @@ void run_many_parts_merge() {
   if (DEBUG) {
     printf("setup array is: \n");
     for (int i = 0; i < n * sets; i++) {
-      //if (i % n == 0) printf("\n");
-      //printf("%lld\n", haystack[i]);
+      // if (i % n == 0) printf("\n");
+      // printf("%lld\n", haystack[i]);
     }
-    //printf("\n");
+    // printf("\n");
   }
 
   // confirm that i have sorted parts:
@@ -58,15 +57,15 @@ void run_many_parts_merge() {
     // bool is_merged = is_sorted(start_ptr, start_idx, end_idx);
     bool is_merged = is_sorted(haystack, start_idx, end_idx);
     assert(is_merged);
-	}
+  }
 
   // merge the pairs.
   //  easiest way: explicit based on eight sets of 16;
   //   take six arbitrary groups and merge into three, then two then one.
-	p_merge_new(haystack, aux, 0, 7, 15); 
-	p_merge_new(haystack, aux, 16, 23, 31); 
-	p_merge_new(haystack, aux, 32, 39, 47); 
-	p_merge_new(haystack, aux, 48, 55, 63); 
+  p_merge_new(haystack, aux, 0, 7, 15);
+  p_merge_new(haystack, aux, 16, 23, 31);
+  p_merge_new(haystack, aux, 32, 39, 47);
+  p_merge_new(haystack, aux, 48, 55, 63);
 
   bool is_merged = is_sorted(haystack, 0, 16);
   assert(is_merged);
@@ -80,11 +79,12 @@ void run_many_parts_merge() {
   is_merged = is_sorted(haystack, 48, 64);
   assert(is_merged);
 
-  //printf("\nfinal: are the two pieces merged? %s \n\n", (is_merged) ? "yes" : "no");
+  // printf("\nfinal: are the two pieces merged? %s \n\n", (is_merged) ? "yes" :
+  // "no");
 
   // round2:
-	p_merge_new(haystack, aux, 0, 15, 31); 
-	p_merge_new(haystack, aux, 32, 47, 63); 
+  p_merge_new(haystack, aux, 0, 15, 31);
+  p_merge_new(haystack, aux, 32, 47, 63);
 
   is_merged = is_sorted(haystack, 0, 32);
   assert(is_merged);
@@ -94,7 +94,7 @@ void run_many_parts_merge() {
 
   // round3:
 
-	p_merge_new(haystack, aux, 0, 31, 63); 
+  p_merge_new(haystack, aux, 0, 31, 63);
 
   is_merged = is_sorted(haystack, 0, 64);
 
@@ -106,12 +106,9 @@ void run_many_parts_merge() {
   free(aux);
 }
 
-
-
-
 void run_large() {
   printf("TEST: serial merge in one larger round.\n");
-  int n = 1000000; //10 mil reasonable max
+  int n = 1000000;  // 10 mil reasonable max
   int sets = 2;
 
   unsigned long long *haystack = malloc((sizeof *haystack) * n * sets);
@@ -124,7 +121,6 @@ void run_large() {
   for (int i = 0; i < sets; i++) {
     qsort((haystack + i * n), n, sizeof(*haystack), cmpfunc);
   }
-
 
   // confirm that i have sorted parts:
 
@@ -141,16 +137,14 @@ void run_large() {
   // merge the pairs.
   //  easiest way: explicit based on eight sets of 16;
   //   take six arbitrary groups and merge into three, then two then one.
-  //parallel_merge_t(haystack, 0, n - 1, n, n * sets - 1, result, 0);
-	p_merge_new(haystack, aux, 0, n-1, n*sets-1); 
-
+  // parallel_merge_t(haystack, 0, n - 1, n, n * sets - 1, result, 0);
+  p_merge_new(haystack, aux, 0, n - 1, n * sets - 1);
 
   clock_t difference = clock() - before;
   int msec = difference * 1000000 / CLOCKS_PER_SEC;
 
   printf("Time taken %d seconds %d milliseconds %d microseconds \n",
          msec / 1000000, msec / 1000, msec % 1000);
-
 
   bool is_merged = is_sorted(haystack, 0, n * sets);
   if (DEBUG)
@@ -166,11 +160,13 @@ void run_large() {
 
 void run_threaded() {
   printf("TEST: threaded merge in one larger round.\n");
-  int n = 1000000; //10 mil decent max //can't do 100 mil in a reasonable time. 
-	int c_ratio = 2; //5; //2; //5;//10; 
+  int n = 1000000;  // 10 mil decent max //can't do 100 mil in a reasonable
+                    // time.
+  int c_ratio = 2;  // 5; //2; //5;//10;
   int sets = 2;
-	//int cutoff = 4194304; //1048576; //65536; //16384; //4096; //1024; //256; //64; //16;
-	int cutoff = n / c_ratio; 
+  // int cutoff = 4194304; //1048576; //65536; //16384; //4096; //1024; //256;
+  // //64; //16;
+  int cutoff = n / c_ratio;
 
   unsigned long long *haystack = malloc((sizeof *haystack) * n * sets);
   unsigned long long *aux = malloc((sizeof *aux) * n * sets);
@@ -183,7 +179,6 @@ void run_threaded() {
     qsort((haystack + i * n), n, sizeof(*haystack), cmpfunc);
   }
 
-
   // confirm that i have sorted parts:
 
   for (int i = 0; i < sets; i++) {
@@ -195,18 +190,15 @@ void run_threaded() {
     assert(is_merged);
   }
 
-	clock_t before = clock();
+  clock_t before = clock();
 
-	p_merge_new_t(haystack, aux, 0, n-1, n*sets-1, cutoff); 
-
+  p_merge_new_t(haystack, aux, 0, n - 1, n * sets - 1, cutoff);
 
   clock_t difference = clock() - before;
   int msec = difference * 1000000 / CLOCKS_PER_SEC;
 
   printf("Time taken %d seconds %d milliseconds %d microseconds \n",
          msec / 1000000, msec / 1000, msec % 1000);
-
-
 
   bool is_merged = is_sorted(haystack, 0, n * sets);
   if (DEBUG)
@@ -219,4 +211,3 @@ void run_threaded() {
   free(haystack);
   free(aux);
 }
-

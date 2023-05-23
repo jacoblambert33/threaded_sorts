@@ -10,7 +10,6 @@
 #include "helpers_sort.h"
 #include "p_merge_new.h"
 
-
 /*
 P-MERGE-AUX(A; p1; r1; p2; r2; B; p3)
 1 if p1 > r1 and p2 > r2 // are both subarrays empty?
@@ -31,9 +30,10 @@ P-MERGE-AUX(A; p1; r1; p2; r2; B; p3)
 "
 */
 
-/* MAYBE  use the individual component in p_merge_new.h 
-	but right now that's private and will stay that way. 
-worried about conflicting types as i attempt to retain both this and that version
+/* MAYBE  use the individual component in p_merge_new.h
+        but right now that's private and will stay that way.
+worried about conflicting types as i attempt to retain both this and that
+version
 */
 
 void p_merge_aux(unsigned long long a[], int p1, int r1, int p2, int r2,
@@ -64,7 +64,6 @@ void p_merge_aux(unsigned long long a[], int p1, int r1, int p2, int r2,
   p_merge_aux(a, p1, q1 - 1, p2, q2 - 1, b, p3);
   p_merge_aux(a, q1 + 1, r1, q2, r2, b, q3 + 1);
 }
-
 
 /*
 P-MERGE(A; p; q; r)

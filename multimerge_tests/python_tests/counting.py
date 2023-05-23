@@ -222,7 +222,7 @@ def test_baseline() :
 
 def test_msd_book() :
 
-	sz=12000
+	sz=120
 	p = 63
 	rng = np.random.default_rng(12345)
 	a = rng.integers(low=0, high=2**p, size=sz)
@@ -242,8 +242,8 @@ def test_msd_book() :
 	print(f'did it work? {is_sorted(a)}')
 
 
-	#for i in a:
-		#print(i)
+	for i in a:
+		print(i)
 		
 		#print(i.tobytes()[::-1].hex())
 

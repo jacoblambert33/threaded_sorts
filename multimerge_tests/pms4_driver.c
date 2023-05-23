@@ -14,11 +14,11 @@ void run_medium_t();
 void run_large();
 
 int main(int argc, char **argv) {
-  //run_small_t();
-  //run_small();
-  //run_medium();
+  // run_small_t();
+  // run_small();
+  // run_medium();
   run_medium_t();
-  //run_large();
+  // run_large();
 
   return 0;
 }
@@ -63,7 +63,6 @@ void run_small_t() {
   free(haystack);
 }
 
-
 void run_small() {
   int n = 16;  // 10000; //4096; //2048; //260; //258; //256; // 64;
   printf("TEST: parallel merge sort on small array - size %d.\n", n);
@@ -103,7 +102,6 @@ void run_small() {
 
   free(haystack);
 }
-
 
 void run_medium_t() {
   int n = 1000;  // 10000; //4096; //2048; //260; //258; //256; // 64;
