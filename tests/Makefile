@@ -13,7 +13,7 @@ INC=-I../sort/lib/
 LIB=-Llibs/
 CFLAGS=-Wall -g $(INC) $(LIB)
 
-all: bin_search_test helpers_test p_merge_test pms_test fourth_test p_merge_new_test pms4_test lsd_test msd_test quick3_test
+all: bin_search_test helpers_test p_merge_test pms_test fourth_test p_merge_new_test pms4_test lsd_test msd_test quick3_test insertion_test
 #all: bin_search 
 
 bin_search_test: bin_search_driver.c debug.h
@@ -48,6 +48,9 @@ msd_test: msd_driver.c debug.h
 quick3_test: quick3_driver.c debug.h 
 	$(CC) $(CFLAGS) $^ -o $@ -lhelpers -lq3 -linsertion 
 
+insertion_test: insertion_driver.c debug.h 
+	$(CC) $(CFLAGS) $^ -o $@ -lhelpers -linsertion 
+
 #helpers_sort.o: helpers_sort.c helpers_sort.h debug.h
 #	$(CC) $(CFLAGS) -c $^
 
@@ -59,4 +62,4 @@ parallel_merge_sort.o: parallel_merge_sort.c parallel_merge_sort.h debug.h
 
 clean:
 #	rm -rf bin_search binary_search.o test_p_merge p_merge.o test_pms parallel_merge_sort.o	
-	rm -rf bin_search_test helpers_test p_merge_test pms_test fourth_test p_merge_new_test pms4_test lsd_test msd_test quick3_test *.o
+	rm -rf bin_search_test helpers_test p_merge_test pms_test fourth_test p_merge_new_test pms4_test lsd_test msd_test quick3_test insertion_test *.o

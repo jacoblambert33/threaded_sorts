@@ -43,17 +43,18 @@ sort/results/sorted*
 sort/sort
 fib/fib
 mersenne/prng
-multimerge_tests/test_pms
-multimerge_tests/p_merge_test
-multimerge_tests/bin_search_test
-multimerge_tests/helpers_test
-multimerge_tests/fourth_test
-multimerge_tests/pms_test
-multimerge_tests/pms4_test
-multimerge_tests/p_merge_new_test
-multimerge_tests/lsd_test
-multimerge_tests/msd_test
-multimerge_tests/quick3_test
+tests/test_pms
+tests/p_merge_test
+tests/bin_search_test
+tests/helpers_test
+tests/fourth_test
+tests/pms_test
+tests/pms4_test
+tests/p_merge_new_test
+tests/lsd_test
+tests/msd_test
+tests/quick3_test
+tests/insertion_test
 
 
 
