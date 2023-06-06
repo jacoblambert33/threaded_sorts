@@ -1,0 +1,83 @@
+Goid *pmergesort_aux(void *p_quad_params) {
+  // we have arguments packed into a struct to satisfy the pthreads api.
+  //  now, we need to split them into left and right arguments for each thread
+  //  in our divide and conquer approach.
+  struct quad_params left_p = *((struct quad_params *)p_quad_params);
+  // free(p_quad_params);
+
+  // right can start as a copy of left that we modify.
+  struct quad_params right_p = left_p;
+
+  // { .a = a, .aux = aux, .lo = lo, .hi = hi };
+
+  int lo = left_p.lo;
+  int hi = left_p.hi;
+  int mid = lo + (hi - lo) / 2;
+
+  // if (hi <= lo) return NULL;
+  // broken here:
+  if (hi <= lo + CUTOFF) {
+    // insertion_sort(left_p.a, lo, hi);
+    quick(left_p.a, lo, hi);
+    // smergesort(left_p.a, lo, hi);
+    //  not working bc either i have malloc/free errors in my serial impl OR bc
+    //  the stack gets too big. it works for 1k but not 10k in this test.
+    // not going to work bc i'm not aware that qsort can let me sort a portion
+    // of an array the way my home rolled sorts can. qsort(left_p.a, hi-lo,
+    // sizeof(unsigned long long), cmpfunc);
+    return NULL;
+  }  //*/
+
+  left_p.hi = mid;
+  // right_p.lo = mid+1; //it seems like we're skipping the middle value in
+  // insertion sort. BUT i worry if i use the middle value again i might not get
+  // correct mergesort behavior.
+  right_p.lo = mid;
+
+  pthread_t t;
+  // spawn
+  pthread_create(&t, NULL, pmergesort_aux, &left_p);
+  threadcount++;
+  // main thread can do the right side.
+  pmergesort_aux(&right_p);
+
+  // sync - wait for left thread.
+  //  we don't need results so the second argument can be NULL.
+  pthread_join(t, NULL);
+
+  // pmergesort_aux(a, aux, mid + 1, hi);
+  heremerge(left_p.a, left_p.aux, lo, mid, hi);
+  // printf("current threadcount %zu\n", threadcount);
+  return NULL;
+}  // END pmergesort_aux
+
+void heremerge(unsigned long long a[], unsigned long long aux[], int lo,
+               int mid, int hi) {
+  // precondition: a[lo .. mid] and a[mid+1 .. hi] are sorted subarrays
+  assert(is_sorted(a, lo, mid));
+  // assert(is_sorted(a, mid+1, hi));
+  assert(is_sorted(a, mid, hi));
+
+  // copy to aux[]
+  // for (int k = lo; k <= hi; k++) {
+  for (int k = lo; k < hi; k++) {
+    aux[k] = a[k];
+  }
+
+  // merge back to a[]
+  int i = lo, j = mid;  // j = mid+1;
+  // for (int k = lo; k <= hi; k++) {
+  for (int k = lo; k < hi; k++) {  // originally it was i < mid and j > hi
+    if (i >= mid)
+      a[k] = aux[j++];
+    else if (j >= hi)
+      a[k] = aux[i++];
+    else if (less(aux[j], aux[i]))
+      a[k] = aux[j++];
+    else
+      a[k] = aux[i++];
+  }
+
+  // postcondition: a[lo .. hi] is sorted
+  assert(is_sorted(a, lo, hi));
+}

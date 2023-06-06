@@ -1,3 +1,7 @@
+#Rust files:
+# Generated files
+rust_impls/*/target/
+
 # Text files
 mersenne/rand64*
 sort/doc/rand64_list.txt*
