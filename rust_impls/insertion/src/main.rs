@@ -1,45 +1,44 @@
-
 use rand::Rng;
 use std::time::SystemTime;
 
 use sort_utils::*;
 
 fn main() {
- 
+    let n = 100_000;
 
-	let n = 100_000; 
+    let mut v = Vec::<u64>::new();
+    for _i in 0..n {
+        v.push(rand::thread_rng().gen_range(1..=u64::MAX));
+    }
 
-	let mut v = Vec::<u64>::new();
-	for _i in 0..n {
-		v.push( rand::thread_rng().gen_range(1..=u64::MAX));
-	}
+    //println!("{:?}", v);
 
+    assert!(!is_sorted(&v));
 
-	//println!("{:?}", v);
+    let hi = v.len() - 1;
 
-	assert!(!is_sorted(&v));
-	
-	let hi = v.len()-1;
+    let start = SystemTime::now();
 
+    insertion_sort(&mut v, 0, hi);
 
-	let start = SystemTime::now();
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    //println!("it took {} seconds", duration.as_nanos());
+    //println!("it took {} seconds", duration.as_micros());
+    println!(
+        "it took {}.{} seconds",
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
 
-	insertion_sort(&mut v, 0, hi);
+    let lo = v[0];
+    let hi = v[n - 1];
 
-  let end = SystemTime::now();
-  let duration = end.duration_since(start).unwrap();
-  //println!("it took {} seconds", duration.as_nanos());
-  //println!("it took {} seconds", duration.as_micros());
-  println!("it took {}.{} seconds", duration.as_millis()/1000, duration.as_millis()%1000);
-  
-	let lo = v[0];
-	let hi = v[n-1];
+    println!("sorted with lowest element {lo} and highest {hi}");
 
-	println!("sorted with lowest element {lo} and highest {hi}");
+    //println!("{:?}", v);
 
-	//println!("{:?}", v);
-
-	assert!(is_sorted(&v));
+    assert!(is_sorted(&v));
 }
 
 /*
@@ -47,22 +46,22 @@ use std::time::SystemTime;
 
 fn insertion_sort(v: &mut Vec<u64>, lo:usize, hi:usize) {
 
-	//let mut vv = v;
+    //let mut vv = v;
 
-	//println!("outer range inclusive should be {} to {}", lo+1, hi);
-	for i in lo+1..=hi {
-		//println!("i is {i}");
-		//println!("inner range inclusive should be {} to {}", i, lo+1);
-		for j in (lo+1..=i).rev() {
-			//println!("\tj is {j}");
-			if !less(v, j, j-1) {
-				break;
-			}
-			exch(v, j, j-1);
-		}
-	} 	
+    //println!("outer range inclusive should be {} to {}", lo+1, hi);
+    for i in lo+1..=hi {
+        //println!("i is {i}");
+        //println!("inner range inclusive should be {} to {}", i, lo+1);
+        for j in (lo+1..=i).rev() {
+            //println!("\tj is {j}");
+            if !less(v, j, j-1) {
+                break;
+            }
+            exch(v, j, j-1);
+        }
+    }
 
-	assert!(is_sorted(&v));
+    assert!(is_sorted(&v));
 }
 
 
@@ -86,29 +85,29 @@ use std::cmp::Ordering;
 /// is_sorted confirms the vector is sorted.
 fn is_sorted(v: &Vec<u64>) -> bool {
 
-	for i in 1..v.len() {
-		if &v[i] < &v[i-1] {
-			return false;
-		}
-	}
-	true
+    for i in 1..v.len() {
+        if &v[i] < &v[i-1] {
+            return false;
+        }
+    }
+    true
 }
 
 
-/// exch modifies the vector directly and returns nothing. 
+/// exch modifies the vector directly and returns nothing.
 fn exch(v: &mut Vec<u64>, i:usize, j:usize) {
 
-	let &t: &u64 = &v[i];
-	v[i] = v[j];
-	v[j] = t;	
+    let &t: &u64 = &v[i];
+    v[i] = v[j];
+    v[j] = t;
 
 }
 
 /// less is readonly - we need references; not changing the array but reading it.
 fn less(v: &Vec<u64>, i:usize, j:usize) -> bool {
 
-		let first: &u64 = &v[i]; 
-		let second: &u64 = &v[j]; 
+        let first: &u64 = &v[i];
+        let second: &u64 = &v[j];
 
     match first.cmp(second) {
         Ordering::Less => true,
@@ -121,42 +120,42 @@ fn less(v: &Vec<u64>, i:usize, j:usize) -> bool {
 
 #[test]
 fn test_less() {
-	
-	//let a : [u64] = [ 1, 2, 3 ];
-	let v = vec![1, 2, 2];
+
+    //let a : [u64] = [ 1, 2, 3 ];
+    let v = vec![1, 2, 2];
 
 
-	let b = less(&v, 0, 1);
+    let b = less(&v, 0, 1);
 
-	assert!(b);
+    assert!(b);
 
-	let b = less(&v, 1, 0);
+    let b = less(&v, 1, 0);
 
-	assert!(!b);
+    assert!(!b);
 
-	let b = less(&v, 0, 2);
+    let b = less(&v, 0, 2);
 
-	assert!(b);
+    assert!(b);
 
-	let b = less(&v, 2, 1);
+    let b = less(&v, 2, 1);
 
-	assert!(!b);
+    assert!(!b);
 
 }
 
 #[test]
 fn test_exch() {
-	
-	let mut v = vec![1, 2, 3];
 
-	assert_eq!(v[0], 1);
-	assert_eq!(v[1], 2);
-	assert_eq!(v[2], 3);
+    let mut v = vec![1, 2, 3];
 
-	exch(&mut v, 0, 1);
+    assert_eq!(v[0], 1);
+    assert_eq!(v[1], 2);
+    assert_eq!(v[2], 3);
 
-	assert_eq!(v[0], 2);
-	assert_eq!(v[1], 1);
+    exch(&mut v, 0, 1);
+
+    assert_eq!(v[0], 2);
+    assert_eq!(v[1], 1);
 
 
 }
@@ -164,39 +163,39 @@ fn test_exch() {
 #[test]
 fn test_is_sorted() {
 
-	let v = vec![1, 2, 3];
+    let v = vec![1, 2, 3];
 
-	assert!(is_sorted(&v));
+    assert!(is_sorted(&v));
 
-	let v = vec![2, 2, 2];
+    let v = vec![2, 2, 2];
 
-	assert!(is_sorted(&v));
+    assert!(is_sorted(&v));
 
-	let v = vec![2, 1, 1];
+    let v = vec![2, 1, 1];
 
-	assert!(!is_sorted(&v));
+    assert!(!is_sorted(&v));
 
-	let v = vec![1, 1, 1, 2];
+    let v = vec![1, 1, 1, 2];
 
-	assert!(is_sorted(&v));
+    assert!(is_sorted(&v));
 }
 
 #[test]
 fn test_insertion_small() {
 
-	let mut v = vec![4, 3, 2, 1];
+    let mut v = vec![4, 3, 2, 1];
 
-	println!("{:?}", v);
+    println!("{:?}", v);
 
-	assert!(!is_sorted(&v));
-	
-	let hi = v.len()-1;
-	insertion_sort(&mut v, 0, hi);
+    assert!(!is_sorted(&v));
 
-	println!("{:?}", v);
+    let hi = v.len()-1;
+    insertion_sort(&mut v, 0, hi);
 
-	assert!(is_sorted(&v));
-	
+    println!("{:?}", v);
+
+    assert!(is_sorted(&v));
+
 
 }
 
@@ -205,40 +204,40 @@ use rand::Rng;
 #[test]
 fn test_insertion_medium() {
 
-	let n = 10_000; 
+    let n = 10_000;
 
-	let mut v = Vec::<u64>::new();
-	for _i in 0..n {
-		v.push( rand::thread_rng().gen_range(1..=u64::MAX));
-	}
-
-
-	//println!("{:?}", v);
-
-	assert!(!is_sorted(&v));
-	
-	let hi = v.len()-1;
+    let mut v = Vec::<u64>::new();
+    for _i in 0..n {
+        v.push( rand::thread_rng().gen_range(1..=u64::MAX));
+    }
 
 
-	let start = SystemTime::now();
+    //println!("{:?}", v);
 
-	insertion_sort(&mut v, 0, hi);
+    assert!(!is_sorted(&v));
+
+    let hi = v.len()-1;
+
+
+    let start = SystemTime::now();
+
+    insertion_sort(&mut v, 0, hi);
 
   let end = SystemTime::now();
   let duration = end.duration_since(start).unwrap();
   //println!("it took {} seconds", duration.as_nanos());
   //println!("it took {} seconds", duration.as_micros());
   println!("it took {}.{} seconds", duration.as_millis()/1000, duration.as_millis()%1000);
-  
-	let lo = v[0];
-	let hi = v[n-1];
 
-	println!("sorted with lowest element {lo} and highest {hi}");
+    let lo = v[0];
+    let hi = v[n-1];
 
-	//println!("{:?}", v);
+    println!("sorted with lowest element {lo} and highest {hi}");
 
-	assert!(is_sorted(&v));
-	
+    //println!("{:?}", v);
+
+    assert!(is_sorted(&v));
+
 
 }
 */
