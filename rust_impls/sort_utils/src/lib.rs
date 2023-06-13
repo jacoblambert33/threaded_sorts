@@ -1,3 +1,122 @@
+use std::cmp;
+use std::time::SystemTime;
+
+pub fn merge(v: &mut Vec<u64>, aux: &mut Vec<u64>, lo: usize, mid: usize, hi: usize) {
+    //println!("\tmerge was called...");
+    for k in lo..=hi {
+        aux[k] = v[k];
+    }
+
+    let mut i = lo;
+    let mut j = mid + 1;
+
+    for k in lo..=hi {
+        if i > mid {
+            v[k] = aux[j];
+            j = j + 1;
+        } else if j > hi {
+            v[k] = aux[i];
+            i = i + 1;
+        } else if less(aux, j, i) {
+            v[k] = aux[j];
+            j = j + 1;
+        } else {
+            v[k] = aux[i];
+            i = i + 1;
+        }
+    }
+}
+
+pub fn bottom_up_merge(v: &mut Vec<u64>, n: usize, chunk_len: usize) {
+    let mut aux = v.clone();
+
+    let mut len = chunk_len;
+    //let mut lo = 0; //this is NOT the right place to define low.
+    //println!("vector len (n) is {n}");
+    //println!("\tincoming v is: {:?}", v);
+    while len < n {
+        //println!("len is {len}");
+        let mut lo = 0;
+        while lo < n - len {
+            //println!("\tlo is {lo}");
+            let mid = lo + len - 1;
+            let hi = cmp::min(lo + len + len - 1, n - 1);
+            merge(v, &mut aux, lo, mid, hi);
+
+            //println!("\teach v is: {:?}", v);
+            lo = lo + len + len;
+        }
+        len = len * 2;
+    }
+}
+
+/// sort a bunch of small arrays with threads and merge them together.
+pub fn p_merge_sorted_groups(v: &mut Vec<u64>, lo: usize, hi: usize, n_threads: usize) {
+    let threads = n_threads; // 4; //no of threads
+    let len = hi - lo + 1;
+    let chunks = std::cmp::min(len, threads);
+    let _ = crossbeam::scope(|scope| {
+        for slice in v.chunks_mut(len / chunks) {
+            //println!("this slice is: {:?}", slice);
+            //scope.spawn(move |_| insertion_sort_arr(slice, 0, slice.len()-1));
+            scope.spawn(move |_| slice.sort());
+        }
+    });
+    //merge(data, chunks);
+    let chunk_len = len / chunks;
+    let start = SystemTime::now();
+    bottom_up_merge(v, len, chunk_len);
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    //println!("final v is: {:?} for len {len}", v);
+    //println!("chunks is: {chunks}");
+    println!(
+        "serial merge took {}.{} seconds",
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+}
+
+pub fn insertion_sort_arr(v: &mut [u64], lo: usize, hi: usize) {
+    //let mut vv = v;
+
+    //println!("outer range inclusive should be {} to {}", lo+1, hi);
+    for i in lo + 1..=hi {
+        //println!("i is {i}");
+        //println!("inner range inclusive should be {} to {}", i, lo+1);
+        for j in (lo + 1..=i).rev() {
+            //println!("\tj is {j}");
+            if !less_arr(v, j, j - 1) {
+                break;
+            }
+            exch_arr(v, j, j - 1);
+        }
+    }
+
+    //tmp remove:
+    //assert!(is_sorted(&v));
+    let s = &v[lo..=hi];
+    assert!(is_sorted_slice(&s));
+}
+
+pub fn exch_arr(v: &mut [u64], i: usize, j: usize) {
+    let &t: &u64 = &v[i];
+    v[i] = v[j];
+    v[j] = t;
+}
+
+/// less is readonly - we need references; not changing the array but reading it.
+pub fn less_arr(v: &[u64], i: usize, j: usize) -> bool {
+    let first: &u64 = &v[i];
+    let second: &u64 = &v[j];
+
+    match first.cmp(second) {
+        Ordering::Less => true,
+        Ordering::Greater => false,
+        Ordering::Equal => false,
+    }
+}
+
 pub fn insertion_sort(v: &mut Vec<u64>, lo: usize, hi: usize) {
     //let mut vv = v;
 
@@ -216,6 +335,53 @@ mod tests {
         */
 
         //println!("{:?}", v);
+
+        assert!(is_sorted(&v));
+    }
+
+    #[test]
+    fn test_p_insertion_small() {
+        let mut v = vec![4, 3, 2, 1, 8, 9, 7, 6, 3, 2, 4, 1, 5];
+
+        println!("{:?}", v);
+
+        assert!(!is_sorted(&v));
+
+        let hi = v.len() - 1;
+        p_insertion_sort(&mut v, 0, hi, 4);
+
+        println!("{:?}", v);
+
+        assert!(is_sorted(&v));
+    }
+
+    #[test]
+    fn test_p_insertion_medium() {
+        let n = 1_000_000;
+
+        let mut v = Vec::<u64>::new();
+        for _i in 0..n {
+            v.push(rand::thread_rng().gen_range(1..=u64::MAX));
+        }
+
+        let hi = v.len() - 1;
+
+        let start = SystemTime::now();
+
+        p_insertion_sort(&mut v, 0, hi, 256);
+
+        let end = SystemTime::now();
+        let duration = end.duration_since(start).unwrap();
+        println!(
+            "it took {}.{} seconds",
+            duration.as_millis() / 1000,
+            duration.as_millis() % 1000
+        );
+
+        let lo = v[0];
+        let hi = v[n - 1];
+
+        println!("sorted with lowest element {lo} and highest {hi}");
 
         assert!(is_sorted(&v));
     }

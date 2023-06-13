@@ -4,11 +4,12 @@ use std::time::SystemTime;
 use sort_utils::*;
 
 fn main() {
-    let n = 100_000;
+    let n = 100_000_000; //can't do 100 mil on my home ubuntu setup
 
     let mut v = Vec::<u64>::new();
     for _i in 0..n {
         v.push(rand::thread_rng().gen_range(1..=u64::MAX));
+        //v.push(rand::thread_rng().gen_range(1..=20));
     }
 
     //println!("{:?}", v);
@@ -19,7 +20,19 @@ fn main() {
 
     let start = SystemTime::now();
 
-    insertion_sort(&mut v, 0, hi);
+    //v.sort();  //14.4s for 100 mil
+    //insertion_sort(&mut v, 0, hi);
+    //p_merge_sorted_groups(&mut v, 0, hi, 32); //19s
+    //p_merge_sorted_groups(&mut v, 0, hi, 64); //4.xs -- best for 100mil records (??)
+    p_merge_sorted_groups(&mut v, 0, hi, 128); //4.xs
+                                               //p_merge_sorted_groups(&mut v, 0, hi, 256); //4.xs
+                                               //p_merge_sorted_groups(&mut v, 0, hi, 512); //0.844s
+                                               //p_merge_sorted_groups(&mut v, 0, hi, 1024); //1.9s
+                                               //p_merge_sorted_groups(&mut v, 0, hi, 2048); //1.3s   16.x
+                                               //p_merge_sorted_groups(&mut v, 0, hi, 4096); //1.3s   16.x
+                                               //p_merge_sorted_groups(&mut v, 0, hi, 8192); //1.3s
+                                               //p_merge_sorted_groups(&mut v, 0, hi, 16384); //1.3s
+                                               //p_merge_sorted_groups(&mut v, 0, hi, 32768); // stack overflow
 
     let end = SystemTime::now();
     let duration = end.duration_since(start).unwrap();
@@ -39,6 +52,10 @@ fn main() {
     //println!("{:?}", v);
 
     assert!(is_sorted(&v));
+
+    //println!("first elements:\n{:?}", &v[0..1000]);
+    //let b = n - 1000;
+    //println!("last elements:\n{:?}", &v[b..n]);
 }
 
 /*
