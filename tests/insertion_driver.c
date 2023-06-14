@@ -265,7 +265,7 @@ printf("\n");
   clock_t difference = clock() - before;
   int msec = difference * 1000000 / CLOCKS_PER_SEC;
 
-  printf("Time taken: %d seconds %d milliseconds %d microseconds \n",
+  printf("INSERTION: time taken: %d seconds %d milliseconds %d microseconds \n",
          msec / 1000000, (msec / 1000) % 1000, msec % 1000);
 
   is_merged = is_sorted(haystack1, 0, n);
@@ -280,7 +280,7 @@ printf("\n");
   difference = clock() - before;
   msec = difference * 1000000 / CLOCKS_PER_SEC;
 
-  printf("Time taken: %d seconds %d milliseconds %d microseconds \n\n",
+  printf("QSORT time taken: %d seconds %d milliseconds %d microseconds \n\n",
          msec / 1000000, (msec / 1000) % 1000, msec % 1000);
 
   is_merged = is_sorted(haystack2, 0, n);

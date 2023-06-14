@@ -1,6 +1,24 @@
 use std::cmp;
 use std::time::SystemTime;
 
+
+pub fn find_split_point(v: &Vec<u64>, p: usize, r: usize, x: u64) -> usize {
+
+	let mut lo : usize = p;
+	let mut hi : usize = r+1; 
+	while lo < hi {
+		let mid : usize = (lo + hi) / 2;
+		if x <= v[mid] {
+			hi = mid;
+		}
+		else {
+			lo = mid + 1; 
+		}
+	}
+	lo
+}
+
+
 pub fn merge(v: &mut Vec<u64>, aux: &mut Vec<u64>, lo: usize, mid: usize, hi: usize) {
     //println!("\tmerge was called...");
     for k in lo..=hi {
@@ -348,7 +366,9 @@ mod tests {
         assert!(!is_sorted(&v));
 
         let hi = v.len() - 1;
-        p_insertion_sort(&mut v, 0, hi, 4);
+
+        p_merge_sorted_groups(&mut v, 0, hi, 4);
+        //p_insertion_sort(&mut v, 0, hi, 4);
 
         println!("{:?}", v);
 
@@ -368,7 +388,8 @@ mod tests {
 
         let start = SystemTime::now();
 
-        p_insertion_sort(&mut v, 0, hi, 256);
+        p_merge_sorted_groups(&mut v, 0, hi, 256);
+        //p_insertion_sort(&mut v, 0, hi, 256);
 
         let end = SystemTime::now();
         let duration = end.duration_since(start).unwrap();
@@ -385,4 +406,50 @@ mod tests {
 
         assert!(is_sorted(&v));
     }
+
+    #[test]
+    fn test_find_split_point_small() {
+        //let a : [u64] = [ 1, 2, 3 ];
+        let v = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+				//find 4 - expect at index 3. 
+        let b = find_split_point(&v, 0, v.len()-1, 4);
+				assert_eq!(b, 3);
+
+				//find 1 - expect at index 0. 
+        let b = find_split_point(&v, 0, v.len()-1, 1);
+				assert_eq!(b, 0);
+
+				//find 0 - expect at index 0. 
+        let b = find_split_point(&v, 0, v.len()-1, 0);
+				assert_eq!(b, 0);
+
+				//find 100 - expect at index 9, i.e., after the array length 
+        let b = find_split_point(&v, 0, v.len()-1, 100);
+				assert_eq!(b, 9);
+    }
+
+    #[test]
+    fn test_find_split_point_loop() {
+
+				//idea: create a random vector, sort it, then find every element using binary search one by one. 
+				// limitation - doesn't test outside the bounds of the array, but that is captured in small test above.
+				let n = 100;
+
+        let mut v = Vec::<u64>::new();
+        for _i in 0..n {
+            v.push(rand::thread_rng().gen_range(1..=u64::MAX));
+        }
+
+				v.sort();
+
+				for i in 0..n {
+					let b = find_split_point(&v, 0, v.len()-1, v[i]);
+					assert_eq!(b, i);
+				}
+    }
+
+
+
+
 }
