@@ -1,6 +1,6 @@
-# multithreadedMerge
+# concrete sorting algorithms
 
-This project started with one goal in mind: implement multithreaded mergesort from CLRS chapter 27. See: http://cs403.cs.ua.edu/fall2018/CLRS%20Introduction%20to%20Algorithms%20chapter%2027.pdf
+This project started with one goal in mind: implement multithreaded mergesort from CLRS chapter 27. See: http://cs403.cs.ua.edu/fall2018/CLRS%20Introduction%20to%20Algorithms%20chapter%2027.pdf. (in the 4th edition - it's chapter 26!)
 
 However, the project evolved to become a study of sorting with Pthreads. It now has some lasting value in this regard. 
 
