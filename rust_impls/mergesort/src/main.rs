@@ -1,12 +1,134 @@
 use sort_utils::*;
 use std::cmp::Ordering;
+use std::time::SystemTime;
+
+use rayon::prelude::*;
 
 fn main() {
-    test_from_main();
+    //test_from_main();
+    //test_ser_merge_sort_via_main();
+    //test_par_merge_sort_via_main();
+    test_rayon_par_sort_baseline();
 }
 //first step to parallelize array work without locks....slices
 fn portion_work(part: &mut [u64]) {
     println!("received: {:?}", part);
+}
+
+fn test_rayon_par_sort_baseline() {
+    let n = 100_000_000; //1_000_000_000;
+
+    let mut v = Vec::<u64>::new();
+    for _i in 0..n {
+        v.push(rand::thread_rng().gen_range(1..=u64::MAX));
+    }
+
+    let mut w = v.clone();
+
+    let start = SystemTime::now();
+
+    w.sort();
+
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    println!(
+        "sort took {}.{} seconds",
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+    //v.sort();
+
+    //println!("{:?}", v);
+
+    let start = SystemTime::now();
+
+    v.par_sort();
+
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    println!(
+        "par_sort took {}.{} seconds",
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+
+    //println!("{:?}", v);
+
+    assert!(is_sorted(&v));
+}
+
+fn test_ser_merge_sort_via_main() {
+    let n = 10_000_000;
+
+    let mut v = Vec::<u64>::new();
+    let mut w = Vec::<u64>::new();
+    for _i in 0..n {
+        //v.push(rand::thread_rng().gen_range(1..=u64::MAX));
+        v.push(rand::thread_rng().gen_range(1..=20));
+        w.push(rand::thread_rng().gen_range(1..=20));
+    }
+
+    v.sort();
+    w.sort();
+
+    v.append(&mut w);
+
+    //println!("{:?}", v);
+
+    let hi = v.len() - 1;
+    let mid = hi / 2;
+
+    let mut aux: Vec<u64> = v.clone();
+
+    let start = SystemTime::now();
+    sort_utils::merge(&mut v, &mut aux, 0, mid, hi);
+
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    //println!("{:?}", v);
+    println!(
+        "it took {}.{} seconds",
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+
+    assert!(is_sorted(&v));
+}
+
+fn test_par_merge_sort_via_main() {
+    let n = 10_000_000;
+
+    let mut v = Vec::<u64>::new();
+    let mut w = Vec::<u64>::new();
+    for _i in 0..n {
+        //v.push(rand::thread_rng().gen_range(1..=u64::MAX));
+        v.push(rand::thread_rng().gen_range(1..=20));
+        w.push(rand::thread_rng().gen_range(1..=20));
+    }
+
+    v.sort();
+    w.sort();
+
+    v.append(&mut w);
+
+    //println!("{:?}", v);
+
+    let hi = v.len() - 1;
+    let mid = hi / 2;
+
+    let start = SystemTime::now();
+    p_merge(&mut v, 0, mid, hi);
+
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    //println!("{:?}", v);
+    println!(
+        "it took {}.{} seconds",
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+
+    assert!(is_sorted(&v));
 }
 
 fn test_from_main() {
@@ -82,7 +204,7 @@ fn parallel_sort(data: &mut [u64], threads: usize) {
             //scope.spawn(move |_| serial_sort(slice));
             //let n = slice.len();
             //scope.spawn(move |_| mergesort_arr_api(slice, n));
-            scope.spawn(move |_| mergesort_arr_api(slice));
+            //scope.spawn(move |_| mergesort_arr_api(slice));
         }
     });
     println!("do i get here?");
@@ -90,15 +212,19 @@ fn parallel_sort(data: &mut [u64], threads: usize) {
     //merge(v, lo, mid, hi);
 }
 
+/*
 // TODO: can't get this to work so far. saving to show the dead end.
 // replaced this idea with the crossbeam crate and a bottom up merge on sorted pieces.
 fn mergesort_arr_api(v: &mut [u64]) {
     //fn mergesort_arr_api(v: &mut [u64], len: usize) {
 
     // copy to aux[]
-    let mut w = v.clone();
+        // next line - v.clone() - doesn't work.
+    //let mut w = v.clone();
     //dst.copy_from_slice(&src[2..]);
-    let len = w.len();
+    //let len = w.len();
+        //tmp workaround to build
+    let len = v.len();
     let hi = len - 1;
     /*
     let w : [u64; len] = [0; len];
@@ -107,8 +233,9 @@ fn mergesort_arr_api(v: &mut [u64]) {
     }
     */
     let cutoff = 15;
-    mergesort_arr(&mut v, &mut w, 0, hi, cutoff);
-}
+    //mergesort_arr(&mut v, &mut w, 0, hi, cutoff);
+    mergesort_arr(&mut v, &mut v, 0, hi, cutoff);
+}*/
 
 //for now, get it to work via different types.
 fn mergesort_arr(v: &mut [u64], aux: &mut [u64], lo: usize, hi: usize, cutoff: usize) {

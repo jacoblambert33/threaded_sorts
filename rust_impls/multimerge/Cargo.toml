@@ -1,5 +1,5 @@
 [package]
-name = "sort_utils"
+name = "multimerge"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 rand = "0.8.5"
 crossbeam = "0.8"
-rayon = "1.7"
+# rayon = "1.7"
 
+sort_utils = { path = "../sort_utils" }

@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 rand = "0.8.5"
 crossbeam = "0.8"
-sort_utils = { path = "../sort_utils" }
+rayon = "1.7"
 
+sort_utils = { path = "../sort_utils" }
