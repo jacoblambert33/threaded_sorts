@@ -8,57 +8,221 @@ fn main() {
     //test_from_main();
     //test_ser_merge_sort_via_main();
     //test_par_merge_sort_via_main();
-    test_rayon_par_sort_baseline();
+    //test_rayon_par_sort_baseline();
+    test_p_merge_small();
 }
-//first step to parallelize array work without locks....slices
+
 fn portion_work(part: &mut [u64]) {
     println!("received: {:?}", part);
 }
 
-fn test_rayon_par_sort_baseline() {
-    let n = 100_000_000; //1_000_000_000;
-
-    let mut v = Vec::<u64>::new();
-    for _i in 0..n {
-        v.push(rand::thread_rng().gen_range(1..=u64::MAX));
-    }
-
-    let mut w = v.clone();
-
-    let start = SystemTime::now();
-
-    w.sort();
-
-    let end = SystemTime::now();
-    let duration = end.duration_since(start).unwrap();
-    println!(
-        "sort took {}.{} seconds",
-        duration.as_millis() / 1000,
-        duration.as_millis() % 1000
-    );
-    //v.sort();
-
-    //println!("{:?}", v);
-
-    let start = SystemTime::now();
-
-    v.par_sort();
-
-    let end = SystemTime::now();
-    let duration = end.duration_since(start).unwrap();
-    println!(
-        "par_sort took {}.{} seconds",
-        duration.as_millis() / 1000,
-        duration.as_millis() % 1000
-    );
-
-    //println!("{:?}", v);
-
-    assert!(is_sorted(&v));
+fn chunk_array(v: *mut Vec<u64>) {
+    let len = v.len();
+    len
 }
 
+/*
+//START std::thread first attempt
+use std::thread;
+
+
+fn p_merge_t(v: &mut Vec<u64>, p: usize, q: usize, r: usize ) {
+
+    let mut w = v.clone();
+    //println!("w before p_merge_aux: {:?}", w);
+    //p_merge_aux(v, p, q, q+1, r, &mut w, p);
+    let pp = p as i64;
+    let qq = q as i64;
+    let rr = r as i64;
+    p_merge_aux_ints_t(&mut v[..], pp, qq, qq+1, rr, &mut w, pp);
+    //println!("w after p_merge_aux: {:?}", w);
+    for i in p..=r {
+        v[i] = w[i];
+    }
+}
+
+//unsafe fn p_merge_aux_ints_t(v: &mut Vec<u64>, p1: i64, r1: i64, p2: i64, r2: i64, w: &mut Vec<u64>, p3: i64) {
+fn p_merge_aux_ints_t(v: &mut [u64], p1: i64, r1: i64, p2: i64, r2: i64, w: &mut Vec<u64>, p3: i64) {
+
+    //println!("input: p1={p1}, r1={r1}, p2={p2}, r2={r2}, p3={p3}");
+    // bounds of each array mutable bc the first could be considered the second and vice versa - bigger is first.
+    let mut mp1 = p1;
+    let mut mp2 = p2;
+    let mut mr1 = r1;
+    let mut mr2 = r2;
+
+    if p1 > r1 && p2 > r2 { //both subarrays are empty
+        //println!("mr1={mr1}, mp1={mp1}, mr2={mr2}, mp2={mp2}");
+        return;
+    };
+    //println!("input past subarrs empty trap: p1={p1}, r1={r1}, p2={p2}, r2={r2}, p3={p3}");
+
+    if (r1 - p1) < (r2 - p2) { //second subarr is smaller than the first.
+        let t1 = mp1;
+        mp1 = mp2;
+        mp2 = t1;
+        let t2 = mr1;
+        mr1 = mr2;
+        mr2 = t2;
+    }
+
+    let q1 = (mp1 + mr1)/2;  // midpoint of A[p1 : r1]
+
+    let x = v[q1 as usize]; 		// median of A[p1 : r1] is pivot x
+
+    //fix overflow issue carried into split point:
+    if mr2 == -1 {
+        mr2 = 0;
+    }
+
+    //let q2 = find_split_point(v, mp2 as usize, mr2 as usize, x); // split A[p2 : r2] around x
+    let q2 = find_split_point(&v.to_vec(), mp2 as usize, mr2 as usize, x); // split A[p2 : r2] around x
+    let q3 = p3 + (q1 - mp1) + (q2 as i64 - mp2);  // where x belongs in B...
+    /*
+    if q3 == 10 {
+        //println!("input: p1={p1}, r1={r1}, p2={p2}, r2={r2}, p3={p3}, q1={q1}, q2={q2}, q3={q3}");
+        println!("error input: mp1={mp1}, mr1={mr1}, mp2={mp2}, mr2={mr2}, p3={p3}, q1={q1}, q2={q2}, q3={q3}");
+        println!("{:?}", w);
+    } */
+    w[q3 as usize] = x;  // ... put it there
+
+
+    // doesn't need to be a vector...i know it's two each time. but first time, so using a working example...
+    let mut thread_handles = vec![];
+
+    //spawn P-MERGE-AUX(A; p1; q1 - 1; p2; q2 - 1; B; p3)
+    thread_handles.push(
+            //thread::spawn(move || process_files(worklist))
+                        thread::spawn(move||
+                                p_merge_aux_ints_t(v, mp1, q1 - 1, mp2, q2 as i64 - 1, w, p3)
+                            )
+        );
+
+    //spawn P-MERGE-AUX(A; q1 + 1; r1; q2; r2; B; q3 + 1)
+    thread_handles.push(
+            //thread::spawn(move || process_files(worklist))
+                        thread::spawn(move||
+                                p_merge_aux_ints_t(v, q1 + 1, mr1, q2 as i64, mr2, w, q3 + 1)
+                            )
+        );
+
+
+    // Join: Wait for all threads to finish.
+    for handle in thread_handles {
+        handle.join().unwrap();
+    }
+
+} //END of std::thread first attempt
+*/
+
+/*
+P-MERGE.A; p; q; r/
+1 let B[p : r] be a new array // allocate scratch array
+2 P-MERGE-AUX (A; p; q; q + 1; r; B; p) // merge from A into B
+3 parallel for i = p to r // copy B back to A in parallel
+4 A[i] = B[i]
+*/
+
+pub fn p_merge(v: &mut Vec<u64>, p: usize, q: usize, r: usize) {
+    let mut w = v.clone();
+    //println!("w before p_merge_aux: {:?}", w);
+    //p_merge_aux(v, p, q, q+1, r, &mut w, p);
+    let pp = p as i64;
+    let qq = q as i64;
+    let rr = r as i64;
+    p_merge_aux_ints(v, pp, qq, qq + 1, rr, &mut w, pp);
+    //parallel_merge_aux_ints(v, pp, qq, qq+1, rr, &mut w, pp);
+
+    //println!("w after p_merge_aux: {:?}", w);
+    for i in p..=r {
+        v[i] = w[i];
+    }
+}
+
+fn p_merge_aux_ints(
+    v: &mut Vec<u64>,
+    p1: i64,
+    r1: i64,
+    p2: i64,
+    r2: i64,
+    w: &mut Vec<u64>,
+    p3: i64,
+) {
+    //println!("input: p1={p1}, r1={r1}, p2={p2}, r2={r2}, p3={p3}");
+    // bounds of each array mutable bc the first could be considered the second and vice versa - bigger is first.
+    let mut mp1 = p1;
+    let mut mp2 = p2;
+    let mut mr1 = r1;
+    let mut mr2 = r2;
+
+    if p1 > r1 && p2 > r2 {
+        //both subarrays are empty
+        //println!("mr1={mr1}, mp1={mp1}, mr2={mr2}, mp2={mp2}");
+        return;
+    };
+    //println!("input past subarrs empty trap: p1={p1}, r1={r1}, p2={p2}, r2={r2}, p3={p3}");
+
+    if (r1 - p1) < (r2 - p2) {
+        //second subarr is smaller than the first.
+        let t1 = mp1;
+        mp1 = mp2;
+        mp2 = t1;
+        let t2 = mr1;
+        mr1 = mr2;
+        mr2 = t2;
+    }
+
+    let q1 = (mp1 + mr1) / 2; // midpoint of A[p1 : r1]
+
+    let x = v[q1 as usize]; // median of A[p1 : r1] is pivot x
+
+    //fix overflow issue carried into split point:
+    if mr2 == -1 {
+        mr2 = 0;
+    }
+
+    let q2 = find_split_point(v, mp2 as usize, mr2 as usize, x); // split A[p2 : r2] around x
+    let q3 = p3 + (q1 - mp1) + (q2 as i64 - mp2); // where x belongs in B...
+                                                  /*
+                                                  if q3 == 10 {
+                                                      //println!("input: p1={p1}, r1={r1}, p2={p2}, r2={r2}, p3={p3}, q1={q1}, q2={q2}, q3={q3}");
+                                                      println!("error input: mp1={mp1}, mr1={mr1}, mp2={mp2}, mr2={mr2}, p3={p3}, q1={q1}, q2={q2}, q3={q3}");
+                                                      println!("{:?}", w);
+                                                  } */
+    w[q3 as usize] = x; // ... put it there
+
+    //spawn P-MERGE-AUX(A; p1; q1 - 1; p2; q2 - 1; B; p3)
+    p_merge_aux_ints(v, mp1, q1 - 1, mp2, q2 as i64 - 1, w, p3);
+    //spawn P-MERGE-AUX(A; q1 + 1; r1; q2; r2; B; q3 + 1)
+    p_merge_aux_ints(v, q1 + 1, mr1, q2 as i64, mr2, w, q3 + 1);
+}
+
+/*
+P-MERGE-AUX(A; p1; r1; p2; r2; B; p3)
+1 if p1 > r1 and p2 > r2 // are both subarrays empty?
+2 return
+3 if r1 - p1 < r2 - p2 // second subarray bigger?
+4 exchange p1 with p2 // swap subarray roles
+5 exchange r1 with r2
+6 q1 = (p1 + r1)/2 // midpoint of A[p1 : r1]
+7 x = A[q1]		// median of A[p1 : r1] is pivot x
+8 q2 = FIND-SPLIT-POINT(A; p2; r2; x) // split A[p2 : r2] around x
+9 q3 = p3 + (q1 - p1) + (q2 - p2)  // where x belongs in B...
+10 B[q3] = x // ... put it there
+11 // Recursively merge A[p1 : q1 - 1] and A[p2 : q2 - 1] into B[p3 : q3 - 1].
+12 spawn P-MERGE-AUX(A; p1; q1 - 1; p2; q2 - 1; B; p3)
+13 // Recursively merge A[q1 + 1 : r1] and A[q2 : r2] into B[q3 + 1 : r3].
+14 spawn P-MERGE-AUX(A; q1 + 1; r1; q2; r2; B; q3 + 1)
+15 sync // wait for spawns
+"
+*/
+
+//replaced with p_merge_aux_ints due to subtract/overflow issue.
+//fn p_merge_aux(
+
+#[test]
 fn test_ser_merge_sort_via_main() {
-    let n = 10_000_000;
+    let n = 1000; //10_000_000;
 
     let mut v = Vec::<u64>::new();
     let mut w = Vec::<u64>::new();
@@ -95,8 +259,9 @@ fn test_ser_merge_sort_via_main() {
     assert!(is_sorted(&v));
 }
 
+#[test]
 fn test_par_merge_sort_via_main() {
-    let n = 10_000_000;
+    let n = 1000; //10_000_000;
 
     let mut v = Vec::<u64>::new();
     let mut w = Vec::<u64>::new();
@@ -131,8 +296,9 @@ fn test_par_merge_sort_via_main() {
     assert!(is_sorted(&v));
 }
 
+#[test]
 fn test_from_main() {
-    let n = 1_000_000; //1_000_000;
+    let n = 1000; //1_000_000; //1_000_000;
 
     let mut v = Vec::<u64>::new();
     for _i in 0..n {
@@ -196,6 +362,7 @@ pub fn insertion_sort_arr(v: &mut [u64], lo: usize, hi: usize) {
     assert!(is_sorted_slice(&s));
 }
 
+/*
 //copied and modified from https://stackoverflow.com/questions/65415293/implementing-a-parallel-multithreaded-merge-sort-on-vec
 fn parallel_sort(data: &mut [u64], threads: usize) {
     let chunks = std::cmp::min(data.len(), threads);
@@ -204,13 +371,14 @@ fn parallel_sort(data: &mut [u64], threads: usize) {
             //scope.spawn(move |_| serial_sort(slice));
             //let n = slice.len();
             //scope.spawn(move |_| mergesort_arr_api(slice, n));
-            //scope.spawn(move |_| mergesort_arr_api(slice));
+            scope.spawn(move |_| mergesort_arr_api(slice));
         }
     });
     println!("do i get here?");
     //merge(data, chunks);
     //merge(v, lo, mid, hi);
 }
+*/
 
 /*
 // TODO: can't get this to work so far. saving to show the dead end.
@@ -483,3 +651,116 @@ fn test_divide_array() {
 
 #[test]
 fn test_parallel_merge() {}
+
+#[test]
+fn test_p_merge_small() {
+    let mut v = vec![1, 3, 5, 7, 9, 2, 4, 6, 8];
+
+    println!("{:?}", v);
+
+    let hi = v.len() - 1;
+    //let mid = hi / 2;
+    let mid = 4;
+    //let mid = 5;
+    p_merge(&mut v, 0, mid, hi);
+
+    println!("{:?}", v);
+
+    assert!(is_sorted(&v));
+}
+
+#[test]
+fn test_p_merge_medium() {
+    let n = 10_000; //_000;
+
+    let mut v = Vec::<u64>::new();
+    let mut w = Vec::<u64>::new();
+    for _i in 0..n {
+        //v.push(rand::thread_rng().gen_range(1..=u64::MAX));
+        v.push(rand::thread_rng().gen_range(1..=20));
+        w.push(rand::thread_rng().gen_range(1..=20));
+    }
+
+    v.sort();
+    w.sort();
+
+    v.append(&mut w);
+
+    //println!("{:?}", v);
+
+    let hi = v.len() - 1;
+    let mid = hi / 2;
+    let start = SystemTime::now();
+
+    p_merge(&mut v, 0, mid, hi);
+
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    //println!("it took {} seconds", duration.as_nanos());
+    //println!("it took {} seconds", duration.as_micros());
+    println!(
+        "it took {}.{} seconds",
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+
+    //println!("{:?}", v);
+
+    assert!(is_sorted(&v));
+}
+
+#[test]
+fn test_rayon_par_sort_baseline() {
+    let n = 10_000; //100_000_000; //1_000_000_000;
+
+    let mut v = Vec::<u64>::new();
+    for _i in 0..n {
+        v.push(rand::thread_rng().gen_range(1..=u64::MAX));
+    }
+
+    let mut w = v.clone();
+
+    let start = SystemTime::now();
+
+    w.sort();
+
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    println!(
+        "sort took {}.{} seconds",
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+    //v.sort();
+
+    //println!("{:?}", v);
+
+    let start = SystemTime::now();
+
+    v.par_sort();
+
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    println!(
+        "par_sort took {}.{} seconds",
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+
+    //println!("{:?}", v);
+
+    assert!(is_sorted(&v));
+}
+
+#[test]
+fn test_unsafe_simple() {
+    let mut v = vec![0, 1, 2, 3, 4, 5, 6, 7];
+
+    println!("{:?}", v);
+
+    let ans = chunk_array(&mut v);
+
+    println!("{:?}", v);
+
+    assert_eq!(ans, 28);
+}
