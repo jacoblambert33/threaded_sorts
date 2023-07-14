@@ -51,7 +51,8 @@ void quick3(unsigned long long a[], int lo, int hi, int d) {
   }
 
   // no more bits
-  if (d == 7) return;
+  //if (d == 7) return;
+  if (d == 8) return;
 
   int lt = lo;
   int gt = hi;
@@ -100,7 +101,8 @@ void *quick3_t(void *params) {
   }
 
   // no more bits
-  if (p.d == 7) return NULL;
+  //if (p.d == 7) return NULL;
+  if (p.d == 8) return NULL;
 
   int lt = p.lo;
   int gt = p.hi;
