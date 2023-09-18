@@ -9,7 +9,7 @@ use std::thread;
 use std::time::SystemTime;
 
 
-/// another timer function for no arguments...
+/// another timer function for no arguments...see my comments below, but this is valuable to time the test functions. i expect to modify it, however, since i'm wrapping all the test functions to do this and i don't like that. this times the entire test, which is the expense to have a single signature (no params) that can work to time all the tests.  
 pub fn time_fn_noargs(f: &dyn Fn()) {
     let start = SystemTime::now();
 
@@ -28,7 +28,7 @@ pub fn time_fn_noargs(f: &dyn Fn()) {
 
 
 
-/// timer function
+/// timer function. this is an example that is too specialized to be valuable, but i might use it as a baseline for something better. the goal of the timer function is to write timing only in one place and pass as function pointers all the functions i want to time. 
 pub fn time_fn<T: PartialOrd + Ord + Send + Debug>(
     v: &mut Vec<T>,
     run_size: usize,
@@ -49,7 +49,7 @@ pub fn time_fn<T: PartialOrd + Ord + Send + Debug>(
     );
 }
 
-/// utility function to quickly fill a test vector. not generic.
+/// utility function to quickly fill a test vector of u64s. not generic. using Rayon from its documentation. https://docs.rs/rayon/latest/rayon/iter/trait.ParallelIterator.html#method.for_each
 pub fn fill_vec_u64(num_elems: usize, chunk_size: usize) -> Vec<u64> {
     let mut v: Vec<u64> = vec![0; num_elems];
 
@@ -65,6 +65,7 @@ pub fn fill_vec_u64(num_elems: usize, chunk_size: usize) -> Vec<u64> {
     v
 }
 
+///a confirmation method. 
 pub fn confirm_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
     v: &mut Vec<T>,
     run_size: usize,
@@ -76,7 +77,7 @@ pub fn confirm_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
     for i in 0..=n_grps {
         let start = i * run_size;
         let end = min(start + run_size, v.len());
-        println!("\tstart is {}. end is {}", start, end);
+        //println!("\tstart is {}. end is {}", start, end);
         let is_good = is_sorted_slice(&v[start..end]);
         if !is_good {
             //assert!(false);
@@ -878,8 +879,9 @@ mod tests {
 
         let mut v: Vec<u64> = fill_vec_u64(n, run_size);
 
-        let _v = create_sorted_runs(&mut v, run_size, false);
+        let v = create_sorted_runs(&mut v, run_size, false);
 
+        assert!(confirm_sorted_runs(v, run_size));
     }
 
     #[test]
@@ -890,6 +892,7 @@ mod tests {
         let mut v: Vec<u64> = fill_vec_u64(n, 10_000);
 
         v.sort();
+				//time_fn_noargs(&v.sort); //doesn't work...think... 
 
         assert!(is_sorted(&v));
     }
