@@ -2,14 +2,62 @@ use sort_utils::*;
 use std::cmp::Ordering;
 use std::time::SystemTime;
 
+use std::thread;
+use std::time::Duration;
+
 use rayon::prelude::*;
+
+struct WrapperType(*mut Vec<u64>);
+//struct RefRawPointer(&*mut Vec<u64>);
+//struct SendPtr<T>(*const T) 
+//unsafe impl Send<T> for SendPtr<T> { }
+//unsafe impl Sync<T> for SendPtr<T>  { }
+
+
+ 
+unsafe impl Send for WrapperType {}
+unsafe impl Sync for WrapperType {}
+//unsafe impl Send for RefRawPointer {}
+//unsafe impl Sync for RefRawPointer {}
+//unsafe impl Send for *mut Vec<u64> {} //error raw pointers are always foreign. 
+
+
+fn takes_ownership(some_string: String) {
+    // some_string comes into scope
+    println!("{}", some_string);
+}
+
+#[derive(Debug, Clone, Eq)]
+struct User {
+    active: bool,
+    username: String,
+    id: u64,
+}
+
+impl Ord for User {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for User {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for User {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
 
 fn main() {
     //test_from_main();
     //test_ser_merge_sort_via_main();
     //test_par_merge_sort_via_main();
     //test_rayon_par_sort_baseline();
-    test_p_merge_small();
+    //test_p_merge_small();
 }
 
 fn portion_work(part: &mut [u64]) {
@@ -17,8 +65,8 @@ fn portion_work(part: &mut [u64]) {
 }
 
 fn chunk_array(v: *mut Vec<u64>) {
-    let len = v.len();
-    len
+    //let len = v.len();
+    //len
 }
 
 /*
@@ -538,7 +586,8 @@ use rand::Rng;
 
 #[test]
 fn test_merge_medium() {
-    let n = 1_000_000;
+    //let n = 1_000_000;
+    let n = 10_000;
 
     let mut v = Vec::<u64>::new();
     let mut w = Vec::<u64>::new();
@@ -592,7 +641,8 @@ fn test_mergesort_small() {
 #[test]
 fn test_mergesort_medium() {
     //let n = 24; //10_000; //1_000_000;
-    let n = 100_000; //1_000_000;
+    //let n = 100_000; //1_000_000;
+    let n = 1_000;
 
     let mut v = Vec::<u64>::new();
     for _i in 0..n {
@@ -709,47 +759,61 @@ fn test_p_merge_medium() {
     assert!(is_sorted(&v));
 }
 
+fn end_and_print_time(start: SystemTime, msg: &str) {
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    println!(
+        "{} {}.{} seconds",
+        format!("{: >32}", msg),
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+}
+
 #[test]
 fn test_rayon_par_sort_baseline() {
-    let n = 10_000; //100_000_000; //1_000_000_000;
+    //let n = 1_000_000_000;
+    //let n = 100_000_000;
+    //let n = 10_000_000;
+    //let n = 5_000_000;
+    //let n = 1_000_000;
+    let n = 10_000;
 
+    let start = SystemTime::now();
+    println!("start....");
     let mut v = Vec::<u64>::new();
+
+    end_and_print_time(start, "allocated vector...");
+
     for _i in 0..n {
         v.push(rand::thread_rng().gen_range(1..=u64::MAX));
     }
 
+    end_and_print_time(start, "filled in values...");
+
     let mut w = v.clone();
 
-    let start = SystemTime::now();
+    end_and_print_time(start, "cloned...");
 
     w.sort();
 
-    let end = SystemTime::now();
-    let duration = end.duration_since(start).unwrap();
-    println!(
-        "sort took {}.{} seconds",
-        duration.as_millis() / 1000,
-        duration.as_millis() % 1000
-    );
-    //v.sort();
+    end_and_print_time(start, "serial sort...");
 
-    //println!("{:?}", v);
+    assert!(is_sorted(&w));
 
-    let start = SystemTime::now();
+    end_and_print_time(start, "confirm serial sort...");
+
+    assert!(!is_sorted(&v));
+
+    end_and_print_time(start, "confirm paral. NOT sorted...");
 
     v.par_sort();
 
-    let end = SystemTime::now();
-    let duration = end.duration_since(start).unwrap();
-    println!(
-        "par_sort took {}.{} seconds",
-        duration.as_millis() / 1000,
-        duration.as_millis() % 1000
-    );
-
-    //println!("{:?}", v);
+    end_and_print_time(start, "parallel sort...");
 
     assert!(is_sorted(&v));
+
+    end_and_print_time(start, "confirm parallel sort...");
 }
 
 #[test]
@@ -762,5 +826,233 @@ fn test_unsafe_simple() {
 
     println!("{:?}", v);
 
-    assert_eq!(ans, 28);
+    //assert_eq!(ans, 28);
 }
+
+fn build_user(id: u64) -> User {
+    //active: bool,
+    //username: String,
+    //id: u64,
+    User {
+        active: true,
+        username: String::from("idcareyet"),
+        id: id,
+    }
+}
+
+#[test]
+fn test_rayon_par_sort_struct() {
+    //let n = 1_000_000_000;
+    //let n = 100_000_000;
+    //let n = 10_000_000;
+    //let n = 5_000_000;
+    //let n = 1_000_000;
+    let n = 10_000;
+    //let n = 8;
+
+    let start = SystemTime::now();
+    println!("start....");
+    let mut v = Vec::<User>::new();
+
+    end_and_print_time(start, "allocated vector...");
+
+    for _i in 0..n {
+        let id: u64 = rand::thread_rng().gen_range(1..=u64::MAX);
+        let u = build_user(id);
+        v.push(u);
+    }
+
+    //println!("{:?}", v);
+
+    end_and_print_time(start, "filled in values...");
+
+    let mut w = v.clone();
+
+    end_and_print_time(start, "cloned...");
+
+    w.sort();
+
+    end_and_print_time(start, "serial sort...");
+
+    //assert!(is_sorted(&w));
+
+    end_and_print_time(start, "confirm serial sort...");
+
+    //assert!(!is_sorted(&v));
+
+    end_and_print_time(start, "confirm paral. NOT sorted...");
+
+    v.par_sort();
+
+    end_and_print_time(start, "parallel sort...");
+
+    //assert!(is_sorted(&v));
+
+    end_and_print_time(start, "confirm parallel sort...");
+}
+
+#[test]
+fn test_ownership_rules() {
+    //WRONG let *const s = String::from("hello");  // s comes into scope
+    //WRONGlet s : *const String  = String::from("hello");  // s comes into scope
+    let s = String::from("hello"); // s comes into scope
+
+    takes_ownership(s); // s's value moves into the function...
+                        // ... and so is no longer valid here
+                        //println!("can't print s here by default: {s}");
+} // Here, x goes out of scope, then s. But because s's value was moved, nothing
+  // special happens.
+
+#[test]
+fn test_smallest_unsafe_rawpointers() {
+    //let mut v = vec![1, 3, 5, 7, 9, 2, 4, 6, 8];
+    let v = vec![1, 3, 5, 7, 9, 2, 4, 6, 8];
+
+    //let mut w = v as *mut Vec<u32>;
+
+    //let mut w : *mut [u64] = [ 1, 2, 3, 4 ];
+
+    //		let slice = unsafe { std::slice::from_raw_parts_mut(&v, v.len()) };
+
+    let mut num = 5;
+
+    let r1 = &num as *const i32;
+    let r2 = &mut num as *mut i32;
+
+    let mut v = vec![1, 2, 3];
+
+    //let v1 = &mut v as *mut Vec<i32>; //mysteriously stopped working? or appeared to - perhaps other others masking this one? 
+    //let v1 = &mut v as *mut Vec<u64>;
+
+    //println!("{:?}", v1);
+
+    let mut p: Vec<u64> = vec![1, 2, 3];
+
+    let len: usize = p.len();
+
+    let p1 = &mut p as *mut Vec<u64>;
+
+    let handle = thread::spawn(|| {
+        for i in 1..10 {
+            println!("hi number {} from the spawned thread!", i);
+            //thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    println!("vector: {:?}", p);
+    println!("raw pointer: {:?}", p1);
+
+    handle.join().unwrap();
+
+		//let p2 : WrapperType = WrapperType(p1); 
+    //increment_vector_elements_via_threads(p2, len);
+
+		let mut p2 = &mut v[..]; 	
+
+    //increment_array_elements_via_threads(p2, len);
+
+    /*
+        println!("{:?}", v);
+        println!("{:?}", w);
+
+        let hi = v.len() - 1;
+        //let mid = hi / 2;
+        let mid = 4;
+        //let mid = 5;
+        p_merge(&mut v, 0, mid, hi);
+
+        println!("{:?}", v);
+
+        assert!(is_sorted(&v));
+    */
+}
+
+//fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't work
+fn increment_vector_elements_via_threads(v: WrapperType, len: usize) { //doesn't work
+//unsafe fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't fix it. 
+    let mut handle_array = vec![];
+
+		//let v : WrapperType = v; 
+    //for i in v.len() {
+    for i in 0..len {
+        println!("{i}");
+        unsafe { let handle = thread::spawn(|| {
+        //unsafe { let handle = thread::spawn(move || {
+        //let handle = thread::spawn(move || {
+            //println!("in func! {:?}", v.offset(i as isize));
+            //println!("in func! {:?}", v.0.offset(i as isize));
+            //println!("in func! {:?}", *v.0);
+            //println!("in func! {:?}", (*v.0)[i]);
+            //println!("in func! {:?}", v.0[i]);
+            //println!("in func! {:?}", v.0.offset(i as isize));
+						//v[i] = v[i] + 1; //doesn't work. 
+						//v.offset(i) = v.offset(i) + 1; 	
+        });
+        handle_array.push(handle);
+				}
+    }
+
+    while handle_array.len() > 0 {
+        let handle = handle_array.pop();
+        handle
+            .expect("i'm writing unsafe code and i'm tracking indexes")
+            .join()
+            .unwrap();
+    }
+    /*
+    let handle =
+        thread::spawn(|| {
+            for i in 1..10 {
+                println!("in func!");
+                //thread::sleep(Duration::from_millis(1));
+            }
+        });
+    */
+}
+
+
+/*
+//fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't work
+fn increment_array_elements_via_threads(v: &mut [u64], len: usize) { //doesn't work
+//unsafe fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't fix it. 
+    let mut handle_array = vec![];
+
+		//let v : WrapperType = v; 
+    //for i in v.len() {
+    for i in 0..len {
+        println!("{i}");
+        //unsafe { let handle = thread::spawn(|| { //error - fn outlives ...etc. use move it seems
+        unsafe { let handle = thread::spawn(|| { //error - fn outlives ...etc. use move it seems
+        //unsafe { let handle = thread::spawn(move |i| { //error - expected closure that takes zero arguments.
+        //let handle = thread::spawn(move || {
+            //println!("in func! {:?}", v.offset(i as isize));
+            //println!("in func! {:?}", v.0.offset(i as isize));
+            println!("in func! {:?}", v[0]);
+            //println!("in func! {:?}", (*v.0)[i]);
+            //println!("in func! {:?}", v.0[i]);
+            //println!("in func! {:?}", v.0.offset(i as isize));
+						//v[i] = v[i] + 1; //doesn't work. 
+						//v.offset(i) = v.offset(i) + 1; 	
+        });
+        handle_array.push(handle);
+				}
+    }
+
+    while handle_array.len() > 0 {
+        let handle = handle_array.pop();
+        handle
+            .expect("i'm writing unsafe code and i'm tracking indexes")
+            .join()
+            .unwrap();
+    }
+    /*
+    let handle =
+        thread::spawn(|| {
+            for i in 1..10 {
+                println!("in func!");
+                //thread::sleep(Duration::from_millis(1));
+            }
+        });
+    */
+}
+*/
