@@ -1,6 +1,5 @@
 use rand::Rng;
 use rayon::prelude::*;
-use std::cmp;
 use std::cmp::min;
 use std::cmp::Ord;
 use std::fmt::Debug;
@@ -65,7 +64,7 @@ pub fn fill_vec_u64(num_elems: usize, chunk_size: usize) -> Vec<u64> {
     v
 }
 
-///a confirmation method. 
+///a confirmation method. correctness. 
 pub fn confirm_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
     v: &mut Vec<T>,
     run_size: usize,
@@ -80,19 +79,19 @@ pub fn confirm_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
         //println!("\tstart is {}. end is {}", start, end);
         let is_good = is_sorted_slice(&v[start..end]);
         if !is_good {
-            //assert!(false);
             return false;
         }
     }
     return true;
 }
 
-///
+/// Manual use of threads to separate a vector into slices that can be sorted. In another method, these sorted runs can be aggregated (merged) to produce the final sort. I use scoped threads to 
 pub fn create_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
     v: &mut Vec<T>,
     run_size: usize,
     do_print_each: bool,
 ) -> &mut Vec<T> {
+
     thread::scope(|scope| {
         for slice in v.chunks_mut(run_size) {
             scope.spawn(move || {
@@ -108,6 +107,40 @@ pub fn create_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
         }
     });
     v
+
+
+/* doesn't work:
+
+        for slice in v.chunks_mut(run_size) {
+            thread::spawn(move || {
+                // requires marker Send -  T` cannot be sent between threads safely
+                if do_print_each {
+                    println!("before: {:?}", slice);
+                }
+                slice.sort(); //requires the trait Ord.
+                if do_print_each {
+                    println!("after:  {:?}", slice);
+                }
+            });
+        }
+				v
+*/
+/* also doesn't work 
+       thread::spawn(move || {
+							let rs = run_size; 
+							for slice in v.chunks_mut(rs) {
+                // requires marker Send -  T` cannot be sent between threads safely
+                if do_print_each {
+                    println!("before: {:?}", slice);
+                }
+                slice.sort(); //requires the trait Ord.
+                if do_print_each {
+                    println!("after:  {:?}", slice);
+                }
+            };
+				});
+				v
+*/
 }
 
 pub fn find_split_point(v: &Vec<u64>, p: usize, r: usize, x: u64) -> usize {
@@ -184,55 +217,6 @@ pub fn merge_bu(v: &mut [u64], len: usize) {
             v[k] = aux[i];
             i = i + 1;
         }
-    }
-}
-
-pub fn merge(v: &mut Vec<u64>, aux: &mut Vec<u64>, lo: usize, mid: usize, hi: usize) {
-    //println!("\tmerge was called...");
-    for k in lo..=hi {
-        aux[k] = v[k];
-    }
-
-    let mut i = lo;
-    let mut j = mid + 1;
-
-    for k in lo..=hi {
-        if i > mid {
-            v[k] = aux[j];
-            j = j + 1;
-        } else if j > hi {
-            v[k] = aux[i];
-            i = i + 1;
-        } else if less(aux, j, i) {
-            v[k] = aux[j];
-            j = j + 1;
-        } else {
-            v[k] = aux[i];
-            i = i + 1;
-        }
-    }
-}
-
-pub fn bottom_up_merge(v: &mut Vec<u64>, n: usize, chunk_len: usize) {
-    let mut aux = v.clone();
-
-    let mut len = chunk_len;
-    //let mut lo = 0; //this is NOT the right place to define low.
-    //println!("vector len (n) is {n}");
-    //println!("\tincoming v is: {:?}", v);
-    while len < n {
-        //println!("len is {len}");
-        let mut lo = 0;
-        while lo < n - len {
-            //println!("\tlo is {lo}");
-            let mid = lo + len - 1;
-            let hi = cmp::min(lo + len + len - 1, n - 1);
-            merge(v, &mut aux, lo, mid, hi);
-
-            //println!("\teach v is: {:?}", v);
-            lo = lo + len + len;
-        }
-        len = len * 2;
     }
 }
 
@@ -314,33 +298,6 @@ pub fn p_merge_parallel_merge(v: &mut Vec<u64>, lo: usize, hi: usize, unit_step:
             }
         });
     */
-}
-
-/// sort a bunch of small arrays with threads and merge them together.
-pub fn p_merge_sorted_groups(v: &mut Vec<u64>, lo: usize, hi: usize, n_threads: usize) {
-    let threads = n_threads; // 4; //no of threads
-    let len = hi - lo + 1;
-    let chunks = std::cmp::min(len, threads);
-    let _ = crossbeam::scope(|scope| {
-        for slice in v.chunks_mut(len / chunks) {
-            //println!("this slice is: {:?}", slice);
-            //scope.spawn(move |_| insertion_sort_arr(slice, 0, slice.len()-1));
-            scope.spawn(move |_| slice.sort());
-        }
-    });
-    //merge(data, chunks);
-    let chunk_len = len / chunks;
-    let start = SystemTime::now();
-    bottom_up_merge(v, len, chunk_len);
-    let end = SystemTime::now();
-    let duration = end.duration_since(start).unwrap();
-    //println!("final v is: {:?} for len {len}", v);
-    //println!("chunks is: {chunks}");
-    println!(
-        "serial merge took {}.{} seconds",
-        duration.as_millis() / 1000,
-        duration.as_millis() % 1000
-    );
 }
 
 pub fn insertion_sort_arr(v: &mut [u64], lo: usize, hi: usize) {
@@ -470,12 +427,12 @@ mod tests {
 
     /// 14 is a good number for fast unit tests. 24 is a great number to compare tests that you want to have a meaningfully long run without waiting too long.
     fn get_shared_n_els() -> usize {
-        1 << 26
+        1 << 18 
     }
 
     /// experimented with sizes 12-19 and 16 *seems* best (so far).
     fn get_shared_run_size() -> usize {
-        1 << 16
+        1 << 14
     }
 
     #[test]

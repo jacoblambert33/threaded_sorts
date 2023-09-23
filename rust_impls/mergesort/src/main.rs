@@ -1,26 +1,24 @@
 use sort_utils::*;
+
 use std::cmp::Ordering;
 use std::time::SystemTime;
 
 use std::thread;
-use std::time::Duration;
+//use std::time::Duration;
 
 use rayon::prelude::*;
 
 struct WrapperType(*mut Vec<u64>);
 //struct RefRawPointer(&*mut Vec<u64>);
-//struct SendPtr<T>(*const T) 
+//struct SendPtr<T>(*const T)
 //unsafe impl Send<T> for SendPtr<T> { }
 //unsafe impl Sync<T> for SendPtr<T>  { }
 
-
- 
 unsafe impl Send for WrapperType {}
 unsafe impl Sync for WrapperType {}
 //unsafe impl Send for RefRawPointer {}
 //unsafe impl Sync for RefRawPointer {}
-//unsafe impl Send for *mut Vec<u64> {} //error raw pointers are always foreign. 
-
+//unsafe impl Send for *mut Vec<u64> {} //error raw pointers are always foreign.
 
 fn takes_ownership(some_string: String) {
     // some_string comes into scope
@@ -29,8 +27,8 @@ fn takes_ownership(some_string: String) {
 
 #[derive(Debug, Clone, Eq)]
 struct User {
-    active: bool,
-    username: String,
+    //active: bool,
+    //username: String,
     id: u64,
 }
 
@@ -56,17 +54,11 @@ fn main() {
     //test_from_main();
     //test_ser_merge_sort_via_main();
     //test_par_merge_sort_via_main();
-    //test_rayon_par_sort_baseline();
     //test_p_merge_small();
 }
 
 fn portion_work(part: &mut [u64]) {
     println!("received: {:?}", part);
-}
-
-fn chunk_array(v: *mut Vec<u64>) {
-    //let len = v.len();
-    //len
 }
 
 /*
@@ -164,88 +156,6 @@ fn p_merge_aux_ints_t(v: &mut [u64], p1: i64, r1: i64, p2: i64, r2: i64, w: &mut
 */
 
 /*
-P-MERGE.A; p; q; r/
-1 let B[p : r] be a new array // allocate scratch array
-2 P-MERGE-AUX (A; p; q; q + 1; r; B; p) // merge from A into B
-3 parallel for i = p to r // copy B back to A in parallel
-4 A[i] = B[i]
-*/
-
-pub fn p_merge(v: &mut Vec<u64>, p: usize, q: usize, r: usize) {
-    let mut w = v.clone();
-    //println!("w before p_merge_aux: {:?}", w);
-    //p_merge_aux(v, p, q, q+1, r, &mut w, p);
-    let pp = p as i64;
-    let qq = q as i64;
-    let rr = r as i64;
-    p_merge_aux_ints(v, pp, qq, qq + 1, rr, &mut w, pp);
-    //parallel_merge_aux_ints(v, pp, qq, qq+1, rr, &mut w, pp);
-
-    //println!("w after p_merge_aux: {:?}", w);
-    for i in p..=r {
-        v[i] = w[i];
-    }
-}
-
-fn p_merge_aux_ints(
-    v: &mut Vec<u64>,
-    p1: i64,
-    r1: i64,
-    p2: i64,
-    r2: i64,
-    w: &mut Vec<u64>,
-    p3: i64,
-) {
-    //println!("input: p1={p1}, r1={r1}, p2={p2}, r2={r2}, p3={p3}");
-    // bounds of each array mutable bc the first could be considered the second and vice versa - bigger is first.
-    let mut mp1 = p1;
-    let mut mp2 = p2;
-    let mut mr1 = r1;
-    let mut mr2 = r2;
-
-    if p1 > r1 && p2 > r2 {
-        //both subarrays are empty
-        //println!("mr1={mr1}, mp1={mp1}, mr2={mr2}, mp2={mp2}");
-        return;
-    };
-    //println!("input past subarrs empty trap: p1={p1}, r1={r1}, p2={p2}, r2={r2}, p3={p3}");
-
-    if (r1 - p1) < (r2 - p2) {
-        //second subarr is smaller than the first.
-        let t1 = mp1;
-        mp1 = mp2;
-        mp2 = t1;
-        let t2 = mr1;
-        mr1 = mr2;
-        mr2 = t2;
-    }
-
-    let q1 = (mp1 + mr1) / 2; // midpoint of A[p1 : r1]
-
-    let x = v[q1 as usize]; // median of A[p1 : r1] is pivot x
-
-    //fix overflow issue carried into split point:
-    if mr2 == -1 {
-        mr2 = 0;
-    }
-
-    let q2 = find_split_point(v, mp2 as usize, mr2 as usize, x); // split A[p2 : r2] around x
-    let q3 = p3 + (q1 - mp1) + (q2 as i64 - mp2); // where x belongs in B...
-                                                  /*
-                                                  if q3 == 10 {
-                                                      //println!("input: p1={p1}, r1={r1}, p2={p2}, r2={r2}, p3={p3}, q1={q1}, q2={q2}, q3={q3}");
-                                                      println!("error input: mp1={mp1}, mr1={mr1}, mp2={mp2}, mr2={mr2}, p3={p3}, q1={q1}, q2={q2}, q3={q3}");
-                                                      println!("{:?}", w);
-                                                  } */
-    w[q3 as usize] = x; // ... put it there
-
-    //spawn P-MERGE-AUX(A; p1; q1 - 1; p2; q2 - 1; B; p3)
-    p_merge_aux_ints(v, mp1, q1 - 1, mp2, q2 as i64 - 1, w, p3);
-    //spawn P-MERGE-AUX(A; q1 + 1; r1; q2; r2; B; q3 + 1)
-    p_merge_aux_ints(v, q1 + 1, mr1, q2 as i64, mr2, w, q3 + 1);
-}
-
-/*
 P-MERGE-AUX(A; p1; r1; p2; r2; B; p3)
 1 if p1 > r1 and p2 > r2 // are both subarrays empty?
 2 return
@@ -267,82 +177,6 @@ P-MERGE-AUX(A; p1; r1; p2; r2; B; p3)
 
 //replaced with p_merge_aux_ints due to subtract/overflow issue.
 //fn p_merge_aux(
-
-#[test]
-fn test_ser_merge_sort_via_main() {
-    let n = 1000; //10_000_000;
-
-    let mut v = Vec::<u64>::new();
-    let mut w = Vec::<u64>::new();
-    for _i in 0..n {
-        //v.push(rand::thread_rng().gen_range(1..=u64::MAX));
-        v.push(rand::thread_rng().gen_range(1..=20));
-        w.push(rand::thread_rng().gen_range(1..=20));
-    }
-
-    v.sort();
-    w.sort();
-
-    v.append(&mut w);
-
-    //println!("{:?}", v);
-
-    let hi = v.len() - 1;
-    let mid = hi / 2;
-
-    let mut aux: Vec<u64> = v.clone();
-
-    let start = SystemTime::now();
-    sort_utils::merge(&mut v, &mut aux, 0, mid, hi);
-
-    let end = SystemTime::now();
-    let duration = end.duration_since(start).unwrap();
-    //println!("{:?}", v);
-    println!(
-        "it took {}.{} seconds",
-        duration.as_millis() / 1000,
-        duration.as_millis() % 1000
-    );
-
-    assert!(is_sorted(&v));
-}
-
-#[test]
-fn test_par_merge_sort_via_main() {
-    let n = 1000; //10_000_000;
-
-    let mut v = Vec::<u64>::new();
-    let mut w = Vec::<u64>::new();
-    for _i in 0..n {
-        //v.push(rand::thread_rng().gen_range(1..=u64::MAX));
-        v.push(rand::thread_rng().gen_range(1..=20));
-        w.push(rand::thread_rng().gen_range(1..=20));
-    }
-
-    v.sort();
-    w.sort();
-
-    v.append(&mut w);
-
-    //println!("{:?}", v);
-
-    let hi = v.len() - 1;
-    let mid = hi / 2;
-
-    let start = SystemTime::now();
-    p_merge(&mut v, 0, mid, hi);
-
-    let end = SystemTime::now();
-    let duration = end.duration_since(start).unwrap();
-    //println!("{:?}", v);
-    println!(
-        "it took {}.{} seconds",
-        duration.as_millis() / 1000,
-        duration.as_millis() % 1000
-    );
-
-    assert!(is_sorted(&v));
-}
 
 #[test]
 fn test_from_main() {
@@ -367,47 +201,6 @@ fn test_from_main() {
     let worked = is_sorted(&v);
 
     println!("did it sort? {}", worked);
-}
-
-/// exch modifies the vector directly and returns nothing.
-pub fn exch_arr(v: &mut [u64], i: usize, j: usize) {
-    let &t: &u64 = &v[i];
-    v[i] = v[j];
-    v[j] = t;
-}
-
-/// less is readonly - we need references; not changing the array but reading it.
-pub fn less_arr(v: &[u64], i: usize, j: usize) -> bool {
-    let first: &u64 = &v[i];
-    let second: &u64 = &v[j];
-
-    match first.cmp(second) {
-        Ordering::Less => true,
-        Ordering::Greater => false,
-        Ordering::Equal => false,
-    }
-}
-
-pub fn insertion_sort_arr(v: &mut [u64], lo: usize, hi: usize) {
-    //let mut vv = v;
-
-    //println!("outer range inclusive should be {} to {}", lo+1, hi);
-    for i in lo + 1..=hi {
-        //println!("i is {i}");
-        //println!("inner range inclusive should be {} to {}", i, lo+1);
-        for j in (lo + 1..=i).rev() {
-            //println!("\tj is {j}");
-            if !less_arr(v, j, j - 1) {
-                break;
-            }
-            exch_arr(v, j, j - 1);
-        }
-    }
-
-    //tmp remove:
-    //assert!(is_sorted(&v));
-    let s = &v[lo..=hi];
-    assert!(is_sorted_slice(&s));
 }
 
 /*
@@ -700,9 +493,6 @@ fn test_divide_array() {
 }
 
 #[test]
-fn test_parallel_merge() {}
-
-#[test]
 fn test_p_merge_small() {
     let mut v = vec![1, 3, 5, 7, 9, 2, 4, 6, 8];
 
@@ -712,7 +502,7 @@ fn test_p_merge_small() {
     //let mid = hi / 2;
     let mid = 4;
     //let mid = 5;
-    p_merge(&mut v, 0, mid, hi);
+    merge_lib::p_merge(&mut v, 0, mid, hi);
 
     println!("{:?}", v);
 
@@ -742,7 +532,7 @@ fn test_p_merge_medium() {
     let mid = hi / 2;
     let start = SystemTime::now();
 
-    p_merge(&mut v, 0, mid, hi);
+    merge_lib::p_merge(&mut v, 0, mid, hi);
 
     let end = SystemTime::now();
     let duration = end.duration_since(start).unwrap();
@@ -770,72 +560,13 @@ fn end_and_print_time(start: SystemTime, msg: &str) {
     );
 }
 
-#[test]
-fn test_rayon_par_sort_baseline() {
-    //let n = 1_000_000_000;
-    //let n = 100_000_000;
-    //let n = 10_000_000;
-    //let n = 5_000_000;
-    //let n = 1_000_000;
-    let n = 10_000;
-
-    let start = SystemTime::now();
-    println!("start....");
-    let mut v = Vec::<u64>::new();
-
-    end_and_print_time(start, "allocated vector...");
-
-    for _i in 0..n {
-        v.push(rand::thread_rng().gen_range(1..=u64::MAX));
-    }
-
-    end_and_print_time(start, "filled in values...");
-
-    let mut w = v.clone();
-
-    end_and_print_time(start, "cloned...");
-
-    w.sort();
-
-    end_and_print_time(start, "serial sort...");
-
-    assert!(is_sorted(&w));
-
-    end_and_print_time(start, "confirm serial sort...");
-
-    assert!(!is_sorted(&v));
-
-    end_and_print_time(start, "confirm paral. NOT sorted...");
-
-    v.par_sort();
-
-    end_and_print_time(start, "parallel sort...");
-
-    assert!(is_sorted(&v));
-
-    end_and_print_time(start, "confirm parallel sort...");
-}
-
-#[test]
-fn test_unsafe_simple() {
-    let mut v = vec![0, 1, 2, 3, 4, 5, 6, 7];
-
-    println!("{:?}", v);
-
-    let ans = chunk_array(&mut v);
-
-    println!("{:?}", v);
-
-    //assert_eq!(ans, 28);
-}
-
 fn build_user(id: u64) -> User {
     //active: bool,
     //username: String,
     //id: u64,
     User {
-        active: true,
-        username: String::from("idcareyet"),
+        //active: true,
+        //username: String::from("idcareyet"),
         id: id,
     }
 }
@@ -891,6 +622,14 @@ fn test_rayon_par_sort_struct() {
     end_and_print_time(start, "confirm parallel sort...");
 }
 
+use merge_lib;
+
+#[test]
+fn test_from_this_lib() {
+    let x = merge_lib::can_call_me();
+    assert_eq!(x, 5);
+}
+
 #[test]
 fn test_ownership_rules() {
     //WRONG let *const s = String::from("hello");  // s comes into scope
@@ -905,30 +644,15 @@ fn test_ownership_rules() {
 
 #[test]
 fn test_smallest_unsafe_rawpointers() {
-    //let mut v = vec![1, 3, 5, 7, 9, 2, 4, 6, 8];
-    let v = vec![1, 3, 5, 7, 9, 2, 4, 6, 8];
-
-    //let mut w = v as *mut Vec<u32>;
-
-    //let mut w : *mut [u64] = [ 1, 2, 3, 4 ];
-
-    //		let slice = unsafe { std::slice::from_raw_parts_mut(&v, v.len()) };
-
     let mut num = 5;
 
     let r1 = &num as *const i32;
     let r2 = &mut num as *mut i32;
 
-    let mut v = vec![1, 2, 3];
-
-    //let v1 = &mut v as *mut Vec<i32>; //mysteriously stopped working? or appeared to - perhaps other others masking this one? 
-    //let v1 = &mut v as *mut Vec<u64>;
-
-    //println!("{:?}", v1);
+    println!("raw pointer: {:?}", r1);
+    println!("raw pointer: {:?}", r2);
 
     let mut p: Vec<u64> = vec![1, 2, 3];
-
-    let len: usize = p.len();
 
     let p1 = &mut p as *mut Vec<u64>;
 
@@ -943,53 +667,33 @@ fn test_smallest_unsafe_rawpointers() {
     println!("raw pointer: {:?}", p1);
 
     handle.join().unwrap();
-
-		//let p2 : WrapperType = WrapperType(p1); 
-    //increment_vector_elements_via_threads(p2, len);
-
-		let mut p2 = &mut v[..]; 	
-
-    //increment_array_elements_via_threads(p2, len);
-
-    /*
-        println!("{:?}", v);
-        println!("{:?}", w);
-
-        let hi = v.len() - 1;
-        //let mid = hi / 2;
-        let mid = 4;
-        //let mid = 5;
-        p_merge(&mut v, 0, mid, hi);
-
-        println!("{:?}", v);
-
-        assert!(is_sorted(&v));
-    */
 }
 
 //fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't work
-fn increment_vector_elements_via_threads(v: WrapperType, len: usize) { //doesn't work
-//unsafe fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't fix it. 
+fn increment_vector_elements_via_threads(v: WrapperType, len: usize) {
+    //doesn't work
+    //unsafe fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't fix it.
     let mut handle_array = vec![];
 
-		//let v : WrapperType = v; 
+    //let v : WrapperType = v;
     //for i in v.len() {
     for i in 0..len {
         println!("{i}");
-        unsafe { let handle = thread::spawn(|| {
-        //unsafe { let handle = thread::spawn(move || {
-        //let handle = thread::spawn(move || {
-            //println!("in func! {:?}", v.offset(i as isize));
-            //println!("in func! {:?}", v.0.offset(i as isize));
-            //println!("in func! {:?}", *v.0);
-            //println!("in func! {:?}", (*v.0)[i]);
-            //println!("in func! {:?}", v.0[i]);
-            //println!("in func! {:?}", v.0.offset(i as isize));
-						//v[i] = v[i] + 1; //doesn't work. 
-						//v.offset(i) = v.offset(i) + 1; 	
-        });
-        handle_array.push(handle);
-				}
+        unsafe {
+            let handle = thread::spawn(|| {
+                //unsafe { let handle = thread::spawn(move || {
+                //let handle = thread::spawn(move || {
+                //println!("in func! {:?}", v.offset(i as isize));
+                //println!("in func! {:?}", v.0.offset(i as isize));
+                //println!("in func! {:?}", *v.0);
+                //println!("in func! {:?}", (*v.0)[i]);
+                //println!("in func! {:?}", v.0[i]);
+                //println!("in func! {:?}", v.0.offset(i as isize));
+                //v[i] = v[i] + 1; //doesn't work.
+                //v.offset(i) = v.offset(i) + 1;
+            });
+            handle_array.push(handle);
+        }
     }
 
     while handle_array.len() > 0 {
@@ -1010,14 +714,13 @@ fn increment_vector_elements_via_threads(v: WrapperType, len: usize) { //doesn't
     */
 }
 
-
 /*
 //fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't work
 fn increment_array_elements_via_threads(v: &mut [u64], len: usize) { //doesn't work
-//unsafe fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't fix it. 
+//unsafe fn increment_array_elements_via_threads(v: *mut Vec<u64>, len: usize) { //doesn't fix it.
     let mut handle_array = vec![];
 
-		//let v : WrapperType = v; 
+        //let v : WrapperType = v;
     //for i in v.len() {
     for i in 0..len {
         println!("{i}");
@@ -1031,11 +734,11 @@ fn increment_array_elements_via_threads(v: &mut [u64], len: usize) { //doesn't w
             //println!("in func! {:?}", (*v.0)[i]);
             //println!("in func! {:?}", v.0[i]);
             //println!("in func! {:?}", v.0.offset(i as isize));
-						//v[i] = v[i] + 1; //doesn't work. 
-						//v.offset(i) = v.offset(i) + 1; 	
+                        //v[i] = v[i] + 1; //doesn't work.
+                        //v.offset(i) = v.offset(i) + 1;
         });
         handle_array.push(handle);
-				}
+                }
     }
 
     while handle_array.len() > 0 {
