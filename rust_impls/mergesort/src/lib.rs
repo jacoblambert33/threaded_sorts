@@ -1,12 +1,96 @@
 //use sort_utils::find_split_point;
 
+use std::fmt::Debug;
 use std::time::SystemTime;
 
+/// a rust style mergesort from someone else's idea:
+/// first assumption: it's required that we take ownership of the vector for this impl.
+pub fn merge_sort<T: PartialOrd + Debug>(mut v: Vec<T>) -> Vec<T> {
+    if v.len() <= 1 {
+        // if v is one element then it's already sorted. if there's nothing there it's also sorted.
+        return v;
+    }
+
+    let mut res = Vec::with_capacity(v.len());
+
+    let right = v.split_off(v.len() / 2); //split v into two at the midpoint. v is now the first half. b has the second half.
+
+    let left = merge_sort(v);
+    let right = merge_sort(right);
+
+    let mut lit = left.into_iter();
+    let mut rit = right.into_iter();
+    let mut lnxt = lit.next();
+    let mut rnxt = rit.next();
+
+    loop {
+        match lnxt {
+            Some(ref lft_val) => match rnxt {
+                Some(ref rgt_val) => {
+                    if rgt_val < lft_val {
+                        res.push(rnxt.take().unwrap());
+                        rnxt = rit.next();
+                    } else {
+                        res.push(lnxt.take().unwrap());
+                        lnxt = lit.next();
+                    }
+                }
+                None => {
+                    // we know a has a value here, b does not.
+                    res.push(lnxt.take().unwrap());
+                    res.extend(lit);
+                    return res;
+                }
+            },
+            None => {
+                // a doesn't have a value here, but b might.
+                if let Some(rgt_val) = rnxt {
+                    res.push(rgt_val);
+                }
+                res.extend(rit);
+                return res;
+            }
+        }
+    }
+}
+
+/// api for standard merge sort. textbook.
+pub fn mergesort_std_api<T: PartialOrd + Ord + Copy + Send + Debug>(v: &mut Vec<T>, cutoff: usize) {
+    let mut aux = v.clone();
+    mergesort_tb(v, &mut aux, 0, v.len() - 1, cutoff);
+}
+
+///  merge sort. textbook.
+pub fn mergesort_tb<T: PartialOrd + Ord + Copy + Send + Debug>(
+    v: &mut Vec<T>,
+    aux: &mut Vec<T>,
+    lo: usize,
+    hi: usize,
+    cutoff: usize,
+) {
+    if hi <= (lo + cutoff) {
+        sort_utils::insertion_sort(v, lo, hi);
+        return;
+    }
+    let mid = lo + (hi - lo) / 2;
+    mergesort_tb(v, aux, lo, mid, cutoff);
+    mergesort_tb(v, aux, mid + 1, hi, cutoff);
+    merge(v, aux, lo, mid, hi);
+}
+
 /// the standard, serial merge method. textbook based on sedgewick.
-pub fn merge(v: &mut Vec<u64>, aux: &mut Vec<u64>, lo: usize, mid: usize, hi: usize) {
+pub fn merge<T: PartialOrd + Ord + Copy + Debug>(
+    v: &mut Vec<T>,
+    aux: &mut Vec<T>,
+    lo: usize,
+    mid: usize,
+    hi: usize,
+) {
+    //pub fn merge(v: &mut Vec<u64>, aux: &mut Vec<u64>, lo: usize, mid: usize, hi: usize) {
     //println!("\tmerge was called...");
+    ///TODO: is this copy so expensive? something else?
     for k in lo..=hi {
-        aux[k] = v[k];
+        aux[k] = v[k]; //requires Copy now that i've made it generic.
     }
 
     let mut i = lo;
@@ -174,7 +258,101 @@ mod merge_lib_tests {
     use super::*;
 
     use rand::Rng;
+    use rayon::prelude::*;
     use std::time::SystemTime;
+
+    #[test]
+    fn t_merge_sort_small() {
+        let mut v = vec![3, 7, 9, 1, 4, 5, 6];
+
+        v = merge_sort(v);
+
+        assert!(sort_utils::is_sorted(&v));
+        println!("{:?}", v);
+    }
+
+    #[test]
+    fn t_merge_sort_medium() {
+        let n = 1 << 7;
+
+        println!("n is: {}", n);
+
+        let mut v = Vec::<u64>::new();
+        for _i in 0..n {
+            v.push(rand::thread_rng().gen_range(1..=30)); //=u64::MAX));
+        }
+
+        v = merge_sort(v);
+
+        assert!(sort_utils::is_sorted(&v));
+        println!("{:?}", v);
+    }
+
+    #[test]
+    fn t_merge_sort_large() {
+        let n = 1 << 21;
+
+        println!("n is: {}", n);
+
+        let mut v = Vec::<u64>::new();
+        for _i in 0..n {
+            v.push(rand::thread_rng().gen_range(1..=30)); //=u64::MAX));
+        }
+        let mut w = v.clone();
+        let mut x = v.clone();
+        let mut y = v.clone();
+        let mut z = v.clone();
+        let mut a = v.clone();
+
+        let start = SystemTime::now();
+        v = merge_sort(v);
+        sort_utils::end_and_print_time(start, "the rust style mergesort: ");
+
+        assert!(sort_utils::is_sorted(&v));
+
+        let start = SystemTime::now();
+        w.sort();
+        sort_utils::end_and_print_time(start, "the standard vector sort: ");
+
+        assert!(sort_utils::is_sorted(&w));
+
+        let start = SystemTime::now();
+        bottom_up_merge(&mut x, n, 1);
+
+        //pub fn bottom_up_merge(v: &mut Vec<u64>, n: usize, chunk_len: usize) {
+        sort_utils::end_and_print_time(start, "my bottom up: ");
+
+        assert!(sort_utils::is_sorted(&x));
+
+        let start = SystemTime::now();
+        p_merge_sorted_groups(&mut y, 0, n - 1, 2); // 0.7s
+                                                    //p_merge_sorted_groups(&mut y, 0, n-1, 3); // 0.9s
+                                                    //p_merge_sorted_groups(&mut y, 0, n-1, 4); // 0.8s
+                                                    //p_merge_sorted_groups(&mut y, 0, n-1, 8); //1.3s
+                                                    //p_merge_sorted_groups(&mut y, 0, n-1, 16);  //1.3s for n = 1<<21
+                                                    //p_merge_sorted_groups(&mut y, 0, n-1, 64); //1.7s '
+                                                    //p_merge_sorted_groups(&mut y, 0, n-1, 256); //2.5s
+                                                    //p_merge_sorted_groups(&mut y, 0, n-1, 2048); // 3.2s
+                                                    //pub fn p_merge_sorted_groups(v: &mut Vec<u64>, lo: usize, hi: usize, n_threads: usize) {
+
+        sort_utils::end_and_print_time(start, "my runs w threads then bot up: ");
+
+        assert!(sort_utils::is_sorted(&y));
+
+        let start = SystemTime::now();
+        z.par_sort();
+
+        sort_utils::end_and_print_time(start, "rayon: ");
+
+        assert!(sort_utils::is_sorted(&z));
+
+        let start = SystemTime::now();
+        let cutoff = 31;
+        mergesort_std_api(&mut a, cutoff);
+        sort_utils::end_and_print_time(start, "textbook merge sort: ");
+
+        assert!(sort_utils::is_sorted(&a));
+    }
 
     #[test]
     fn t_p_merge_small() {
@@ -301,4 +479,26 @@ mod merge_lib_tests {
 
         assert!(sort_utils::is_sorted(&v));
     }
+
+    #[test]
+    fn t_mergesort_api_small() {
+        let mut v = vec![3, 7, 9, 1, 4, 5, 6];
+
+        mergesort_std_api(&mut v, 15);
+
+        assert!(sort_utils::is_sorted(&v));
+        println!("{:?}", v);
+    }
+
+    /*
+        #[test]
+        fn t_merge_arr_small() {
+            let mut v = vec![3, 7, 9, 1, 4, 5, 6];
+
+            merge_arr(&mut v);
+
+            assert!(sort_utils::is_sorted(&v));
+            println!("{:?}", v);
+        }
+    */
 }

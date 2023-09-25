@@ -1,12 +1,8 @@
 use sort_utils::*;
 
-use std::cmp::Ordering;
 use std::time::SystemTime;
 
 use std::thread;
-//use std::time::Duration;
-
-use rayon::prelude::*;
 
 struct WrapperType(*mut Vec<u64>);
 //struct RefRawPointer(&*mut Vec<u64>);
@@ -23,31 +19,6 @@ unsafe impl Sync for WrapperType {}
 fn takes_ownership(some_string: String) {
     // some_string comes into scope
     println!("{}", some_string);
-}
-
-#[derive(Debug, Clone, Eq)]
-struct User {
-    //active: bool,
-    //username: String,
-    id: u64,
-}
-
-impl Ord for User {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.id.cmp(&other.id)
-    }
-}
-
-impl PartialOrd for User {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for User {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
 }
 
 fn main() {
@@ -220,86 +191,6 @@ fn parallel_sort(data: &mut [u64], threads: usize) {
     //merge(v, lo, mid, hi);
 }
 */
-
-/*
-// TODO: can't get this to work so far. saving to show the dead end.
-// replaced this idea with the crossbeam crate and a bottom up merge on sorted pieces.
-fn mergesort_arr_api(v: &mut [u64]) {
-    //fn mergesort_arr_api(v: &mut [u64], len: usize) {
-
-    // copy to aux[]
-        // next line - v.clone() - doesn't work.
-    //let mut w = v.clone();
-    //dst.copy_from_slice(&src[2..]);
-    //let len = w.len();
-        //tmp workaround to build
-    let len = v.len();
-    let hi = len - 1;
-    /*
-    let w : [u64; len] = [0; len];
-    for i in 0..len {
-        w[i] = v[i];
-    }
-    */
-    let cutoff = 15;
-    //mergesort_arr(&mut v, &mut w, 0, hi, cutoff);
-    mergesort_arr(&mut v, &mut v, 0, hi, cutoff);
-}*/
-
-//for now, get it to work via different types.
-fn mergesort_arr(v: &mut [u64], aux: &mut [u64], lo: usize, hi: usize, cutoff: usize) {
-    /*
-    if hi <= lo {
-          return;
-      }
-      */
-    //println!("{:?}", &v);
-    if hi <= (lo + cutoff) {
-        insertion_sort_arr(v, lo, hi);
-        return;
-    }
-
-    let mid = lo + (hi - lo) / 2;
-    //println!("inside ms: lo is {lo}, mid is {mid}, and hi is {hi}");
-
-    mergesort_arr(v, aux, lo, mid, cutoff);
-    mergesort_arr(v, aux, mid + 1, hi, cutoff);
-
-    merge_arr(v, aux, lo, mid, hi);
-}
-
-fn merge_arr(a: &mut [u64], aux: &mut [u64], lo: usize, mid: usize, hi: usize) {
-    // precondition: a[lo .. mid] and a[mid+1 .. hi] are sorted subarrays
-    //println!("{:?}", &a[lo..=mid]);
-    //println!("{:?}", &a[mid+1..=hi]);
-    //assert!(is_sorted_slice(&a[lo..=mid]));
-    //assert!(is_sorted_slice(&a[mid+1..=hi]));
-
-    // merge back to a[]
-    let mut i = lo;
-    let mut j = mid + 1; // j = mid+1;
-                         // for (int k = lo; k <= hi; k++) {
-    for k in lo..=hi {
-        //println!("k is {k}");
-        if i > mid {
-            a[k] = aux[j];
-            j = j + 1;
-        } else if j > hi {
-            a[k] = aux[i];
-            i = i + 1;
-        } else if less_arr(&aux, j, i) {
-            //println!("k is {k}");
-            a[k] = aux[j];
-            j = j + 1;
-        } else {
-            a[k] = aux[i];
-            i = i + 1;
-        }
-    }
-
-    //println!("{:?}", &a);
-    //assert!(is_sorted(&a));
-}
 
 fn mergesort(v: &mut Vec<u64>, lo: usize, hi: usize, cutoff: usize) {
     /*
@@ -547,79 +438,6 @@ fn test_p_merge_medium() {
     //println!("{:?}", v);
 
     assert!(is_sorted(&v));
-}
-
-fn end_and_print_time(start: SystemTime, msg: &str) {
-    let end = SystemTime::now();
-    let duration = end.duration_since(start).unwrap();
-    println!(
-        "{} {}.{} seconds",
-        format!("{: >32}", msg),
-        duration.as_millis() / 1000,
-        duration.as_millis() % 1000
-    );
-}
-
-fn build_user(id: u64) -> User {
-    //active: bool,
-    //username: String,
-    //id: u64,
-    User {
-        //active: true,
-        //username: String::from("idcareyet"),
-        id: id,
-    }
-}
-
-#[test]
-fn test_rayon_par_sort_struct() {
-    //let n = 1_000_000_000;
-    //let n = 100_000_000;
-    //let n = 10_000_000;
-    //let n = 5_000_000;
-    //let n = 1_000_000;
-    let n = 10_000;
-    //let n = 8;
-
-    let start = SystemTime::now();
-    println!("start....");
-    let mut v = Vec::<User>::new();
-
-    end_and_print_time(start, "allocated vector...");
-
-    for _i in 0..n {
-        let id: u64 = rand::thread_rng().gen_range(1..=u64::MAX);
-        let u = build_user(id);
-        v.push(u);
-    }
-
-    //println!("{:?}", v);
-
-    end_and_print_time(start, "filled in values...");
-
-    let mut w = v.clone();
-
-    end_and_print_time(start, "cloned...");
-
-    w.sort();
-
-    end_and_print_time(start, "serial sort...");
-
-    //assert!(is_sorted(&w));
-
-    end_and_print_time(start, "confirm serial sort...");
-
-    //assert!(!is_sorted(&v));
-
-    end_and_print_time(start, "confirm paral. NOT sorted...");
-
-    v.par_sort();
-
-    end_and_print_time(start, "parallel sort...");
-
-    //assert!(is_sorted(&v));
-
-    end_and_print_time(start, "confirm parallel sort...");
 }
 
 use merge_lib;

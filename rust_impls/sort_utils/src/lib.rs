@@ -7,6 +7,17 @@ use std::marker::Send;
 use std::thread;
 use std::time::SystemTime;
 
+/// easiest (and helpful) timer, but it isn't independent - needs a start time.
+pub fn end_and_print_time(start: SystemTime, msg: &str) {
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    println!(
+        "{} {}.{} seconds",
+        format!("{: >32}", msg),
+        duration.as_millis() / 1000,
+        duration.as_millis() % 1000
+    );
+}
 
 /// another timer function for no arguments...see my comments below, but this is valuable to time the test functions. i expect to modify it, however, since i'm wrapping all the test functions to do this and i don't like that. this times the entire test, which is the expense to have a single signature (no params) that can work to time all the tests.  
 pub fn time_fn_noargs(f: &dyn Fn()) {
@@ -22,12 +33,9 @@ pub fn time_fn_noargs(f: &dyn Fn()) {
         duration.as_millis() / 1000,
         duration.as_millis() % 1000
     );
-
 }
 
-
-
-/// timer function. this is an example that is too specialized to be valuable, but i might use it as a baseline for something better. the goal of the timer function is to write timing only in one place and pass as function pointers all the functions i want to time. 
+/// timer function. this is an example that is too specialized to be valuable, but i might use it as a baseline for something better. the goal of the timer function is to write timing only in one place and pass as function pointers all the functions i want to time.
 pub fn time_fn<T: PartialOrd + Ord + Send + Debug>(
     v: &mut Vec<T>,
     run_size: usize,
@@ -64,7 +72,7 @@ pub fn fill_vec_u64(num_elems: usize, chunk_size: usize) -> Vec<u64> {
     v
 }
 
-///a confirmation method. correctness. 
+///a confirmation method. correctness.
 pub fn confirm_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
     v: &mut Vec<T>,
     run_size: usize,
@@ -85,13 +93,12 @@ pub fn confirm_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
     return true;
 }
 
-/// Manual use of threads to separate a vector into slices that can be sorted. In another method, these sorted runs can be aggregated (merged) to produce the final sort. I use scoped threads to 
+/// Manual use of threads to separate a vector into slices that can be sorted. In another method, these sorted runs can be aggregated (merged) to produce the final sort. I use scoped threads to
 pub fn create_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
     v: &mut Vec<T>,
     run_size: usize,
     do_print_each: bool,
 ) -> &mut Vec<T> {
-
     thread::scope(|scope| {
         for slice in v.chunks_mut(run_size) {
             scope.spawn(move || {
@@ -107,42 +114,9 @@ pub fn create_sorted_runs<T: PartialOrd + Ord + Send + Debug>(
         }
     });
     v
-
-
-/* doesn't work:
-
-        for slice in v.chunks_mut(run_size) {
-            thread::spawn(move || {
-                // requires marker Send -  T` cannot be sent between threads safely
-                if do_print_each {
-                    println!("before: {:?}", slice);
-                }
-                slice.sort(); //requires the trait Ord.
-                if do_print_each {
-                    println!("after:  {:?}", slice);
-                }
-            });
-        }
-				v
-*/
-/* also doesn't work 
-       thread::spawn(move || {
-							let rs = run_size; 
-							for slice in v.chunks_mut(rs) {
-                // requires marker Send -  T` cannot be sent between threads safely
-                if do_print_each {
-                    println!("before: {:?}", slice);
-                }
-                slice.sort(); //requires the trait Ord.
-                if do_print_each {
-                    println!("after:  {:?}", slice);
-                }
-            };
-				});
-				v
-*/
 }
 
+/// binary search. TODO: compare to https://doc.rust-lang.org/std/primitive.slice.html#method.binary_search
 pub fn find_split_point(v: &Vec<u64>, p: usize, r: usize, x: u64) -> usize {
     //println!("split-point input: p={p}, r={r}, x={x}");
 
@@ -340,7 +314,12 @@ pub fn less_arr(v: &[u64], i: usize, j: usize) -> bool {
     }
 }
 
-pub fn insertion_sort(v: &mut Vec<u64>, lo: usize, hi: usize) {
+pub fn insertion_sort<T: PartialOrd + Ord + Copy + Send + Debug>(
+    v: &mut Vec<T>,
+    lo: usize,
+    hi: usize,
+) {
+    //pub fn insertion_sort(v: &mut Vec<u64>, lo: usize, hi: usize) {
     //let mut vv = v;
 
     //println!("outer range inclusive should be {} to {}", lo+1, hi);
@@ -361,19 +340,6 @@ pub fn insertion_sort(v: &mut Vec<u64>, lo: usize, hi: usize) {
     let s = &v[lo..=hi];
     assert!(is_sorted_slice(&s));
 }
-
-/*
-fn insertion_sort(Vec<u64> a, u32 lo, u32 hi) {
-void insertion_sort(unsigned long long a[], int lo, int hi) {
-  for (int i = lo + 1; i < hi; i++) {
-    for (int j = i; j > lo && less(a[j], a[j - 1]); j--) {
-      exch(a, j, j - 1);
-    }
-  }
-  assert(is_sorted(a, lo, hi));
-  return;
-}
-}*/
 
 use std::cmp::Ordering;
 //use std::io;
@@ -400,16 +366,21 @@ pub fn is_sorted_slice<T: PartialOrd + Ord + Send + Debug>(v: &[T]) -> bool {
 }
 
 /// exch modifies the vector directly and returns nothing.
-pub fn exch(v: &mut Vec<u64>, i: usize, j: usize) {
-    let &t: &u64 = &v[i];
+pub fn exch<T: PartialOrd + Ord + Copy + Debug>(v: &mut Vec<T>, i: usize, j: usize) {
+    //pub fn exch(v: &mut Vec<u64>, i: usize, j: usize) {
+    //let &t: &u64 = &v[i];
+    let &t = &v[i];
     v[i] = v[j];
     v[j] = t;
 }
 
 /// less is readonly - we need references; not changing the array but reading it.
-pub fn less(v: &Vec<u64>, i: usize, j: usize) -> bool {
-    let first: &u64 = &v[i];
-    let second: &u64 = &v[j];
+pub fn less<T: PartialOrd + Ord + Debug>(v: &Vec<T>, i: usize, j: usize) -> bool {
+    //pub fn less(v: &Vec<u64>, i: usize, j: usize) -> bool {
+    //let first: &u64 = &v[i];
+    //let second: &u64 = &v[j];
+    let first = &v[i];
+    let second = &v[j];
 
     match first.cmp(second) {
         Ordering::Less => true,
@@ -427,7 +398,7 @@ mod tests {
 
     /// 14 is a good number for fast unit tests. 24 is a great number to compare tests that you want to have a meaningfully long run without waiting too long.
     fn get_shared_n_els() -> usize {
-        1 << 18 
+        1 << 18
     }
 
     /// experimented with sizes 12-19 and 16 *seems* best (so far).
@@ -563,56 +534,6 @@ mod tests {
     }
 
     #[test]
-    fn t_p_insertion_small() {
-        let mut v = vec![4, 3, 2, 1, 8, 9, 7, 6, 3, 2, 4, 1, 5];
-
-        println!("{:?}", v);
-
-        assert!(!is_sorted(&v));
-
-        let hi = v.len() - 1;
-
-        p_merge_sorted_groups(&mut v, 0, hi, 4);
-        //p_insertion_sort(&mut v, 0, hi, 4);
-
-        println!("{:?}", v);
-
-        assert!(is_sorted(&v));
-    }
-
-    #[test]
-    fn t_p_insertion_medium() {
-        let n = 10_000; //1_000_000;
-
-        let mut v = Vec::<u64>::new();
-        for _i in 0..n {
-            v.push(rand::thread_rng().gen_range(1..=u64::MAX));
-        }
-
-        let hi = v.len() - 1;
-
-        let start = SystemTime::now();
-
-        p_merge_sorted_groups(&mut v, 0, hi, 256);
-        //p_insertion_sort(&mut v, 0, hi, 256);
-
-        let end = SystemTime::now();
-        let duration = end.duration_since(start).unwrap();
-        println!(
-            "it took {}.{} seconds",
-            duration.as_millis() / 1000,
-            duration.as_millis() % 1000
-        );
-
-        let lo = v[0];
-        let hi = v[n - 1];
-
-        println!("sorted with lowest element {lo} and highest {hi}");
-
-        assert!(is_sorted(&v));
-    }
-
-    #[test]
     fn t_find_split_point_small() {
         //let a : [u64] = [ 1, 2, 3 ];
         let v = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -650,48 +571,6 @@ mod tests {
     }
 
     #[test]
-    fn t_merge_medium() {
-        let n = 10_000; //_000;
-
-        let mut v = Vec::<u64>::new();
-        let mut w = Vec::<u64>::new();
-        for _i in 0..n {
-            //v.push(rand::thread_rng().gen_range(1..=u64::MAX));
-            v.push(rand::thread_rng().gen_range(1..=20));
-            w.push(rand::thread_rng().gen_range(1..=20));
-        }
-
-        v.sort();
-        w.sort();
-
-        v.append(&mut w);
-        //w.clear();  makes a length 0 array....not what i want.
-        let mut w = v.clone();
-
-        //println!("{:?}", v);
-
-        let hi = v.len() - 1;
-        //let mid = hi / 2;
-        let start = SystemTime::now();
-
-        merge(&mut v, &mut w, 0, n - 1, hi);
-
-        let end = SystemTime::now();
-        let duration = end.duration_since(start).unwrap();
-        //println!("it took {} seconds", duration.as_nanos());
-        //println!("it took {} seconds", duration.as_micros());
-        println!(
-            "it took {}.{} seconds",
-            duration.as_millis() / 1000,
-            duration.as_millis() % 1000
-        );
-
-        //println!("{:?}", v);
-
-        assert!(is_sorted(&v));
-    }
-
-    #[test]
     fn t_rayon_par_sort() {
         let n = get_shared_n_els();
         println!("n is: {}", n);
@@ -711,38 +590,6 @@ mod tests {
         );
 
         //println!("{:?}", v);
-
-        assert!(is_sorted(&v));
-    }
-
-    #[test]
-    fn t_my_parallel_merge() {
-        let n = 100_000; //10_000_000;
-
-        let mut v = Vec::<u64>::new();
-        for _i in 0..n {
-            v.push(rand::thread_rng().gen_range(1..=u64::MAX));
-        }
-
-        let hi = v.len() - 1;
-
-        let start = SystemTime::now();
-
-        p_merge_sorted_groups(&mut v, 0, hi, 4);
-        //p_insertion_sort(&mut v, 0, hi, 256);
-
-        let end = SystemTime::now();
-        let duration = end.duration_since(start).unwrap();
-        println!(
-            "it took {}.{} seconds",
-            duration.as_millis() / 1000,
-            duration.as_millis() % 1000
-        );
-
-        let lo = v[0];
-        let hi = v[n - 1];
-
-        println!("sorted with lowest element {lo} and highest {hi}");
 
         assert!(is_sorted(&v));
     }
@@ -849,7 +696,7 @@ mod tests {
         let mut v: Vec<u64> = fill_vec_u64(n, 10_000);
 
         v.sort();
-				//time_fn_noargs(&v.sort); //doesn't work...think... 
+        //time_fn_noargs(&v.sort); //doesn't work...think...
 
         assert!(is_sorted(&v));
     }
@@ -869,13 +716,10 @@ mod tests {
         time_fn(&mut v, run_size, &create_sorted_runs);
     }
 
-	#[test]
-	fn t_time_fn_noargs() {
-
-		//time_fn_noargs(&t_exch); 
-		//time_fn_noargs(&t_baseline_sort); 
-		time_fn_noargs(&t_create_sorted_runs_large); 
-
-
-	}
+    #[test]
+    fn t_time_fn_noargs() {
+        //time_fn_noargs(&t_exch);
+        //time_fn_noargs(&t_baseline_sort);
+        time_fn_noargs(&t_create_sorted_runs_large);
+    }
 }
