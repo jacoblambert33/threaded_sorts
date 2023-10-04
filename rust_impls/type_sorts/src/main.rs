@@ -101,7 +101,9 @@ fn create_tuple_buckets_reverse_order() -> Vec<(u8, Vec<(u8, u8, u8)>)> {
 //fn create_array_three_tuples_reverse_order() -> [[(u8, u8, u8); 256 *256]; 256] {
 //fn create_array_three_tuples_reverse_order() -> [[(u8, u8, u8); 256 *256 * 256]; 256] {
 //fn create_array_three_tuples_reverse_order() -> Box<[[(u8, u8, u8); 256 *256 * 256]; 256]> { //this what i want, but it requires 12 GB. so i'll test with half
-fn create_array_three_tuples_reverse_order() -> Box<[[(u8, u8, u8); 256 *256 * 256]; 128]> {
+//i'm able to creat so many more tuples as an array of arrays than as one array of tuples. 
+fn create_array_three_tuples_maxvm_reverse_order() -> Box<[[(u8, u8, u8); 256 *256 * 256]; 128]> {
+
     //capacity <<= 8 * 2; //expand the capacity to hold a tuple of three u8 values - the limit on my machine. (four u8 values - to get all the combinations.
 
 
@@ -135,6 +137,8 @@ fn create_array_three_tuples_reverse_order() -> Box<[[(u8, u8, u8); 256 *256 * 2
         //println!("v has {} tuples.", v.len());
 				//v[a] = tup_vec; 
 			//v[a].sort()
+			//how much faster without a sort at creation?
+			//created 128 arrays each with an array sized 16777216 10.623 seconds
 			v[a].par_sort()
     }
 
@@ -150,6 +154,32 @@ fn create_array_three_tuples_reverse_order() -> Box<[[(u8, u8, u8); 256 *256 * 2
 
     v
 }
+
+fn create_array_three_tuples_sameszonearray_reverse_order() -> Box<[[(u8, u8, u8); 256 *256 * 256]; 48]> {
+
+    let mut v = Box::new([[(0, 0, 0); 256 * 256 * 256] ; 48 ]); 
+
+    for a in 0..48 {
+				let mut each_tup = (0, 0, 0);
+				let mut i = 0; 
+        for b in (0..=255).rev() {
+            each_tup.0 = b;
+            for c in (0..=255).rev() {
+                each_tup.1 = c;
+                for d in (0..=255).rev() {
+                    each_tup.2 = d;
+										v[a][i] = each_tup; 
+										i = i + 1; 
+                }
+            }
+        }
+			//sort in creation. 
+			v[a].par_sort()
+    }
+
+    v
+}
+
 
 
 fn create_array_four_tuples_reverse_order() -> Box<[(u8, u8, u8, u8); 256*256*256*48]> {
@@ -173,6 +203,7 @@ fn create_array_four_tuples_reverse_order() -> Box<[(u8, u8, u8, u8); 256*256*25
         }
     }
 
+		v.par_sort();
     v
 }
 
@@ -254,8 +285,22 @@ fn create_tuples_random_bytes() -> Vec<(u8, u8, u8, u8)> {
     v
 }
 
+fn create_one_tuple_random_bytes() -> (u8, u8, u8, u8) {
+
+    let mut t = (0, 0, 0, 0);
+
+        t.0 = rand::thread_rng().gen_range(1..=u8::MAX);
+        t.1 = rand::thread_rng().gen_range(1..=u8::MAX);
+        t.2 = rand::thread_rng().gen_range(1..=u8::MAX);
+        t.3 = rand::thread_rng().gen_range(1..=u8::MAX);
+	
+		t
+}
+
+
 fn main() {
     println!("Hello, world!");
+		//t_search_random_tuple_in_many_arrays(); 
 }
 
 #[test]
@@ -521,13 +566,14 @@ fn _sort_array_buckets(buckets: &mut [(u8, u8, u8); 256 *256]) {
 
 }
 
-
 #[test]
-fn t_create_arr_tuples() {
+fn t_create_arr_samesz_tuples() {
 
 	let start = SystemTime::now();
-//fn create_array_three_tuples_reverse_order() -> [[(u8, u8, u8); 256 *256]; 256] {
-	let mut x = create_array_three_tuples_reverse_order(); 
+	// ideally: 
+//fn create_array_three_tuples_reverse_order() -> [[(u8, u8, u8); 256 * 256 * 256]; 256] {
+	//let x = create_array_three_tuples_maxvm_reverse_order(); 
+	let x = create_array_three_tuples_sameszonearray_reverse_order(); 
 	sort_utils::end_and_print_time(start, &format!("created {} arrays each with an array sized {}", x.len(), x[0].len()) );
 	
 	println!("the array has {} elements.", x.len()); 
@@ -572,23 +618,68 @@ fn t_create_arr_tuples() {
 
 	sort_utils::end_and_print_time(start, "sorted each array");
 
-	for i in 0..128 {
+	//for i in 0..128 {
+	for i in 0..48 {
 		//let y = Vec::new(x[i]); 
 		let z = vec!(x[i]); 
     assert!(sort_utils::is_sorted(&z));
 	}
-/*
+/* // serial creation. a serial sort when i'm done. this is not ideal. 
 created 128 arrays each with an array sized 16777216 10.279 seconds
 the array has 128 elements.
                sorted each array 6.942 seconds
 */
+/* // this when i move sorting into array creation. creation is still serial, so that should change. 
+created 128 arrays each with an array sized 16777216 13.947 seconds
+the array has 128 elements.
+               sorted each array 0.0 seconds
+test t_create_arr_tuples ... ok
+*/
 
+
+}
+
+
+
+#[test]
+fn t_create_arr_maxsz_tuples() {
+
+	let start = SystemTime::now();
+	// ideally, but biggest i can get on my VM is 128. 
+//fn create_array_three_tuples_reverse_order() -> [[(u8, u8, u8); 256 * 256 * 256]; 256] {
+	let x = create_array_three_tuples_maxvm_reverse_order(); 
+	sort_utils::end_and_print_time(start, &format!("created {} arrays each with an array sized {}", x.len(), x[0].len()) );
+	
+	println!("the array has {} elements.", x.len()); 
+
+	let start = SystemTime::now();
+
+	sort_utils::end_and_print_time(start, "sorted each array");
+
+	for i in 0..128 {
+		let z = vec!(x[i]); 
+    assert!(sort_utils::is_sorted(&z));
+	}
+/* // serial creation. a serial sort when i'm done. this is not ideal. 
+created 128 arrays each with an array sized 16777216 10.279 seconds
+the array has 128 elements.
+               sorted each array 6.942 seconds
+*/
+/* // this when i move sorting into array creation. creation is still serial, so that should change. 
+created 128 arrays each with an array sized 16777216 13.947 seconds
+the array has 128 elements.
+               sorted each array 0.0 seconds
+test t_create_arr_tuples ... ok
+*/
 
 
 }
 
 #[test]
-fn t_create_arr_all_tuples() {
+fn t_create_arr_four_tuples() {
+
+	// i can't build more than ~48 * 256^3 tuples as one array. 
+	//  on my VM at home. 
 
 	let start = SystemTime::now();
 //fn create_array_four_tuples_reverse_order() -> Box<[[(u8, u8, u8, u8); 256*256*256*128]> {
@@ -598,11 +689,136 @@ fn t_create_arr_all_tuples() {
 	println!("the array has {} elements.", x.len()); 
 
 	let start = SystemTime::now();
+	//move sort into creation. 
 	//x.sort();
-	x.par_sort();
+	//x.par_sort();
 	sort_utils::end_and_print_time(start, "sorted each array");
+
+/*
+       created 805306368 arrays. 5.581 seconds
+the array has 805306368 elements.
+               sorted each array 6.830 seconds
+test t_create_arr_four_tuples ... ok
+
+
+*/
 
 }
 
+#[test]
+fn t_get_one_random_tuple() {
+
+	let t = create_one_tuple_random_bytes();
+	println!("got a tuple: {} {} {} {}", t.0, t.1, t.2, t.3); 
+
+}
+
+#[test]
+fn t_search_random_tuple_in_one_array() {
+
+	// limitation imposed by my VM with 8GB memory. 
+	let mut t = create_one_tuple_random_bytes();
+	while t.0 > 47 {
+		println!("got a tuple: {} {} {} {}", t.0, t.1, t.2, t.3); 
+		t = create_one_tuple_random_bytes(); 
+	}
+
+	let mut x = create_array_four_tuples_reverse_order(); 
+
+	let answer = x.binary_search(&t); 
+
+	match answer {
+    Ok(index) => println!("found {} at index {} ", format!("{}-{}-{}-{}", t.0, t.1, t.2, t.3), index),
+    Err(some_error) => println!("{}", some_error),
+	}
+}
+
+fn get_just_my_three_tuple(t0: usize) -> [(u8, u8, u8); 256 *256 * 256] {
+
+	let x = create_array_three_tuples_sameszonearray_reverse_order(); 
+	
+	let y = x[t0]; 
+	y
+	
+}
+
+#[test] //remove from test while i try to use gdb to look at the stack. 
+pub fn t_search_random_tuple_in_many_arrays() {
+
+	// limitation imposed by my VM with 8GB memory. 
+	let mut t = create_one_tuple_random_bytes();
+	while t.0 > 47 {
+		println!("got a tuple: {} {} {} {}", t.0, t.1, t.2, t.3); 
+		t = create_one_tuple_random_bytes(); 
+	}
+
+	/*
+	let x = create_array_three_tuples_sameszonearray_reverse_order(); 
+	
+	//let x = vec!(x); //doesn't help. tried this with modified drop_save_stack. 
+
+	//first level search is an index saving many ops....or only 8 bc it's log_2 256. 
+	//let y = x[t.0 as usize]; //overflows the stack.  
+	let y = x[t.0 as usize]; 
+	//let y = Box::new(x[t.0 as usize]);  //doesn't help. 
+	//let y = drop_save_stack(t.0 as usize, x); 
+	//println!("y is the one array i want with size {}", y.len());
+	*/
+
+	//let y = get_just_my_three_tuple(t.0 as usize); //still overflows.
+	//let y = Box::new(get_just_my_three_tuple(t.0 as usize)); 
+	let y : [(u8, u8, u8); 256*256*256] = get_just_my_three_tuple(t.0 as usize); 
+
+	println!("do i get just one array? {}", y.len()); 
+
+	//let y = vec!(get_just_my_three_tuple(t.0 as usize)); 
+	
+	let t0 = t.0; 
+	//need to split apart the tuple here...
+	let t = (t.1, t.2, t.3); 
+	//let answer = y.binary_search(&t);  //overflowed its stack. 
+
+ //alternative. 
+	//let answer = sort_utils::find_split_point(y, 0, y.len(), t);
+	//let answer = my_bin_search(y, 0, y.len(), t); y.len - ownership taken by function. 
+	//let answer = my_bin_search(y, 0, 256*256*256, t);
+	//println!("found {} at index {} ", format!("{}-{}-{}-{}", t0, t.0, t.1, t.2), answer);
+	//pub fn find_split_point(v: &Vec<u64>, p: usize, r: usize, x: u64) -> usize {
+
+	/*
+	match answer {
+    Ok(index) => println!("found {} at index {} ", format!("{}-{}-{}-{}", t0, t.0, t.1, t.2), index),
+    Err(some_error) => println!("{}", some_error),
+	}
+	*/
+}
+
+// not helping in these forms...
+fn drop_save_stack(index: usize, x: Box<[[(u8, u8, u8); 256 *256 * 256]; 48]>) -> [(u8, u8, u8); 256 *256 * 256] {
+//fn drop_save_stack(index: usize, x: Vec<Box<[[(u8, u8, u8); 256 *256 * 256]; 48]>>) -> Box<[(u8, u8, u8); 256 *256 * 256]> {
+	x[index]
+	//let x = &x[0]; 
+	//let y = x[index];
+	//drop(x); 
+	//Box::new(y)
+	//y
+}
+
+/// binary search. TODO: compare to https://doc.rust-lang.org/std/primitive.slice.html#method.binary_search
+pub fn my_bin_search(v: Box<[(u8, u8, u8); 256 *256 * 256]>, p: usize, r: usize, x: (u8, u8, u8)) -> usize {
+    //println!("split-point input: p={p}, r={r}, x={x}");
+
+    let mut lo: usize = p;
+    let mut hi: usize = r + 1;
+    while lo < hi {
+        let mid: usize = (lo + hi) / 2;
+        if x <= v[mid] {
+            hi = mid;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    lo
+}
 
 
