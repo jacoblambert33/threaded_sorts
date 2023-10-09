@@ -1,4 +1,6 @@
 use rand::Rng;
+use rand::prelude::*;
+use rand_chacha::ChaCha8Rng;
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::time::SystemTime;
@@ -6,6 +8,45 @@ use std::time::SystemTime;
 use std::thread;
 
 //use sort_utils::*;
+
+/*
+// incomplete idea
+#[derive(Copy, Clone)]
+struct BoxedArray {
+	a : Box<[u8; 4]>,
+}
+*/
+
+#[derive(Clone, Copy)]
+struct WrapperBag(*mut Vec<Vec<Vec<[u8; 2]>>>);
+
+ 
+unsafe impl Send for WrapperBag {}
+unsafe impl Sync for WrapperBag {} 
+
+
+
+/*
+error[E0277]: `*mut Vec<Vec<Vec<[u8; 2]>>>` cannot be shared between threads safely
+    --> src/main.rs:1154:19
+     |
+1154 |                         scope.spawn(|_| println!("this slice is: {:p}", &raw_v));
+     |                               ----- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `*mut Vec<Vec<Vec<[u8; 2]>>>` cannot be shared between threads safely
+     |                               |
+     |                               required by a bound introduced by this call
+     |
+     = help: the trait `Sync` is not implemented for `*mut Vec<Vec<Vec<[u8; 2]>>>`
+     = note: required for `&*mut Vec<Vec<Vec<[u8; 2]>>>` to implement `Send`
+note: required because it's used within this closure
+    --> src/main.rs:1154:19
+     |
+1154 |                         scope.spawn(|_| println!("this slice is: {:p}", &raw_v));
+     |                                     ^^^
+note: required by a bound in `crossbeam::thread::Scope::<'env>::spawn`
+    --> /home/jacob/.cargo/registry/src/index.crates.io-6f17d22bba15001f/cross
+*/
+
+
 
 #[derive(Debug, Clone, Eq)]
 struct User {
@@ -179,6 +220,112 @@ fn create_array_three_tuples_sameszonearray_reverse_order() -> Box<[[(u8, u8, u8
 
     v
 }
+/*
+// create the biggest array of 2,3,4,or 5 elements that i can on my VM. 
+//  experimental - might not actually be the upper limit of largest, but get a sense for that. 
+//fn create_array_four_reverse_order() -> [[u8;4]; 256*256*256*48] {
+//fn create_array_four_large() -> Box<[[u8;4]; 256*256*256*48]> {
+//fn create_array_four_large() -> Box<[Box<[u8;4]>; 256*256*256*48]> {
+//fn create_array_four_large() -> Box<[Vec<u8>; 256*256*256*48]> {
+
+    //let mut arr = Box::new([[0; 4]; 256*256*256*48 ]); //this hopefully feasible. 
+    //let mut arr = Box::new([vec!([0; 4]); 256*256*256*48 ]); //this hopefully feasible. 
+    //let mut arr = Box::new(Vec::new(); 256*256*256*48 ); //this hopefully feasible. 
+    let mut arr = Box::new([Box::new([0; 4]); 256*256*256*48 ]); //this hopefully feasible. 
+
+		let mut i = 0; 
+    for a in 0..4 {
+			for b in 0..4 {
+				for c in 0..4 {
+					for d in 0..4 {
+						//println!("a {} b {} c {} d {}", a, b, c, d); 
+						//arr[i] = Box::new([a, b, c, d].clone()); 
+						arr[i] = [a, b, c, d].clone(); 
+						//arr[i] = BoxedArray { arr : [a, b, c, d] }; 
+						i = i + 1; 
+					}
+				}
+			}
+		}
+
+		//arr.sort();
+		//Box::new(arr)  //wrong place to Box. 
+//		arr
+}
+*/
+fn create_vecvecvecarr() -> Vec<Vec<Vec<[u8; 2]>>> {
+
+	let mut v = vec![vec![vec![[0; 2]; 8]; 4]; 4];
+	v[3][2][1] = [0xf, 0xa];
+	v
+}
+
+fn create_vecvecvecarr_variable(a: usize, b: usize, c: usize) -> Vec<Vec<Vec<[u8; 2]>>> {
+
+	let mut v = vec![vec![vec![[0; 2]; a]; b]; c];
+	v
+}
+
+
+fn create_little_array_four_prototype() -> Box<[[u8;4]; 4*4*4*4]> {
+
+    let mut arr = Box::new([[0; 4]; 4*4*4*4 ]); //this hopefully feasible. 
+
+		let mut i = 0; 
+    for a in 0..4 {
+			//arr[i][0] = a; 
+			//for b in (0..4).rev() {
+			for b in 0..4 {
+				//arr[i][1] = b; 
+				//for c in (0..4).rev() {
+				for c in 0..4 {
+					//arr[i][2] = c; 
+					//for d in (0..8).rev() {
+					for d in 0..4 {
+						//arr[i][3] = d; 
+						println!("a {} b {} c {} d {}", a, b, c, d); 
+						arr[i] = [a, b, c, d]; 
+						i = i + 1; 
+					}
+				}
+			}
+		}
+
+		//arr.sort();
+		//Box::new(arr)  //wrong place to Box. 
+		arr
+}
+
+
+fn create_array_four_reverse_order() -> Box<[[u8;4]; 256*256*256*48]> {
+//fn create_array_four_reverse_order() -> Box<[Box<[u8;4]>; 256*256*256*48]> {
+
+    //let mut arr = [[0; 4]; 256 * 256 * 256 * 48 ]; //too big for stack. 
+    //let mut arr = Box::new([Box::new([0; 4]); 256 * 256 * 256 * 48 ]); //this hopefully feasible. 
+    let mut arr = Box::new([[0; 4]; 256 * 256 * 256 * 48 ]); //this hopefully feasible. 
+
+		let mut i = 0; 
+    for a in 0..48 {
+			arr[i][0] = a; 
+			for b in (0..=255).rev() {
+				arr[i][1] = b; 
+				for c in (0..=255).rev() {
+					arr[i][2] = c; 
+					for d in (0..=255).rev() {
+						arr[i][3] = d; 
+						i = i + 1; 
+					}
+				}
+			}
+		}
+
+		arr.par_sort();
+		//Box::new(arr)  //wrong place to Box. 
+		arr
+}
+
+
+
 
 
 
@@ -819,6 +966,438 @@ pub fn my_bin_search(v: Box<[(u8, u8, u8); 256 *256 * 256]>, p: usize, r: usize,
         }
     }
     lo
+}
+
+#[test]
+fn t_create_array_four_reverse_order() {
+
+	//too big for stack - but i can Box:
+	//let arr = create_array_four_reverse_order(); 
+	let arr = create_little_array_four_prototype();
+	//let arr = create_array_four_large();
+	println!("you created an array of arrays of length {}", arr.len()); 
+	println!("what does it look like?");
+	for i in 0..10 {
+		println!("{:?}", arr[i]); 
+	}
+
+	
+	//panic!();
+}
+
+
+fn create_and_sort_small() -> Vec<Vec<Vec<[u8; 2]>>> {
+
+
+	let mut v = create_vecvecvecarr_variable(2,2,2);
+	//let mut v = create_vecvecvecarr(); 
+	
+	println!("created vec sz {} of vecs of sz {} of vec of sz {} of arrays of size {}", v.len(), v[0].len(), v[0][0].len(), v[0][0][0].len()); 
+
+
+	//now can we sort as we create?. 
+	v.par_iter_mut()
+			.for_each(|mut i| { 
+					i.par_iter_mut()
+						.for_each(|mut j| {
+							for k in 0..j.len() {
+								let x = rand::thread_rng().gen_range(1..=u8::MAX);
+								let y = rand::thread_rng().gen_range(1..=u8::MAX);
+								j[k] = [ x, y ]
+							}
+							j.sort()
+						});
+			});
+	v
+}
+
+fn create_and_sort_medium() -> Vec<Vec<Vec<[u8; 2]>>> {
+
+
+	let start = SystemTime::now();
+
+	//let mut v = create_vecvecvecarr_variable(8,8,8);
+	//let mut v = create_vecvecvecarr_variable(32,32,32);
+	//let mut v = create_vecvecvecarr_variable(128,128,128);
+	//let mut v = create_vecvecvecarr_variable(256*256,128,128);
+	//finishes in 38 seconds in release mode
+	let mut v = create_vecvecvecarr_variable(256*256,256,128);
+	//86.05s
+	//let mut v = create_vecvecvecarr(); 
+	
+	sort_utils::end_and_print_time(start, "created.");
+
+
+	println!("created vec sz {} of vecs of sz {} of vec of sz {} of arrays of size {}", v.len(), v[0].len(), v[0][0].len(), v[0][0][0].len()); 
+
+
+	let start = SystemTime::now();
+	//now can we sort as we create?. 
+	v.par_iter_mut()
+			.for_each(|mut i| { 
+					i.par_iter_mut()
+						.for_each(|mut j| {
+							for k in 0..j.len() {
+								let x = rand::thread_rng().gen_range(1..=u8::MAX);
+								let y = rand::thread_rng().gen_range(1..=u8::MAX);
+								j[k] = [ x, y ]
+							}
+							j.sort()
+						});
+			});
+	sort_utils::end_and_print_time(start, "filled, sorted rand vals in parallel.");
+
+	v
+}
+
+
+#[test]
+fn t_create_vecvecvecarr() {
+
+//fn create_vecvecvecarr() -> Vec<Vec<Vec<[u8; 2]>>> {
+	let mut v = create_vecvecvecarr(); 
+	
+	println!("created vec sz {} of vecs of sz {} of vec of sz {} of arrays of size {}", v.len(), v[0].len(), v[0][0].len(), v[0][0][0].len()); 
+
+/* // crossbeam probably can work if i figure it out....not this...
+		let unit_step = v.len() / 4; //tmp for experiment
+
+    let _ = crossbeam::scope(|scope| {
+        for l2 in v.chunks_mut(unit_step) {
+            //println!("this slice is: {:?}", slice);
+            scope.spawn(move |_| l2[1][2][3] = [ 3 as u8, 4 as u8]);
+        }
+    });
+*/
+
+	//(0..100).into_par_iter()
+	//v.into_par_iter()
+	//v.par_iter()
+	//v.clone().into_par_iter() // don't want to clone...
+			//.for_each(|i| println!("{:?}", i[0][0]));
+			//.for_each(|mut i| i[0][0] = [ 0xd, 0xe ]);
+			//.for_each(|mut &mut Vec<Vec<[u8; 2]>>| i[0][0] = [ 0xd, 0xe ]);
+			//.for_each(|mut &mut Vec<Vec<[u8; 2]>>| i[0][0] = [ 0xd, 0xe ]);
+
+/* //solid start
+	v.par_iter_mut()
+			.for_each(|mut i| i[0][0] = [ 0xd, 0xe ]);
+*/ 
+
+/* //improvement on start
+	v.par_iter_mut()
+			.for_each(|mut i| { 
+					i.par_iter_mut()
+						.for_each(|mut j| j[0] = [ 0xd, 0xe ]);
+			});
+*/
+
+/*
+	//another improvement - all the values filled in now. 
+	v.par_iter_mut()
+			.for_each(|mut i| { 
+					i.par_iter_mut()
+						.for_each(|mut j| 
+							for k in 0..j.len() {
+								let x = rand::thread_rng().gen_range(1..=u8::MAX);
+								let y = rand::thread_rng().gen_range(1..=u8::MAX);
+								j[k] = [ x, y ]
+							});
+
+			});
+*/
+
+
+	//now can we sort as we create?. 
+	v.par_iter_mut()
+			.for_each(|mut i| { 
+					i.par_iter_mut()
+						.for_each(|mut j| {
+							for k in 0..j.len() {
+								let x = rand::thread_rng().gen_range(1..=u8::MAX);
+								let y = rand::thread_rng().gen_range(1..=u8::MAX);
+								j[k] = [ x, y ]
+							}
+							j.sort()
+						});
+					//i.sort(); //wrong place. 
+			});
+
+
+	/*
+    (0..5).for_each(|i|{
+        (0..5).into_par_iter().for_each_with(&sender, |sender, j|{
+            sender.send(i + j).unwrap();   
+        });
+    });
+	*/
+	
+
+	for i in 0..v.len() {
+		for j in 0..v[i].len() {
+			for k in 0..v[j].len() {
+				println!("{:?}", v[i][j][k]); 
+			}
+		}
+	}
+}
+
+#[test]
+fn t_create_and_sort_small() {
+
+	//let v = create_and_sort_small(); 
+	let v = create_and_sort_medium(); 
+
+/*
+	for i in 0..v.len() {
+		for j in 0..v[i].len() {
+			for k in 0..v[j].len() {
+				println!("{:?}", v[i][j][k]); 
+			}
+		}
+	}
+*/
+}
+
+#[test]
+fn t_create_cb_vecvecvecarr() {
+
+	//let mut v = create_vecvecvecarr_variable(4, 4, 4); 
+	//let sz = 128; 
+	let sz_l1 = 8; //4; //128;
+	let sz_l2 = 256; //4; //128; //64; //16; //32; //64; //128; //256;
+	let sz_l3 = 256*256; //16; //256*256; 
+	//let mut v = create_vecvecvecarr_variable(2,2,2); 
+	//let mut v = create_vecvecvecarr_variable((2*sz)*(2*sz), 2*sz, sz); 
+
+	let start = SystemTime::now();
+
+	let mut v = create_vecvecvecarr_variable(sz_l3, sz_l2, sz_l1); 
+	
+	sort_utils::end_and_print_time(start, "created data structure.");
+
+	println!("created vec sz {} of vecs of sz {} of vec of sz {} of arrays of size {}", v.len(), v[0].len(), v[0][0].len(), v[0][0][0].len()); 
+
+ // crossbeam probably can work if i figure it out....not this...
+	//	let unit_step = v.len() / 4; //tmp for experiment
+
+
+	let start = SystemTime::now();
+
+  //let r2 = &mut num as *mut i32;
+	//let raw_v = &mut v as *mut Vec<_>; 
+	let raw_v : WrapperBag = WrapperBag(&mut v); 
+
+    let _ = crossbeam::scope(|scope| {
+        //for l2 in v.chunks_mut(unit_step) { //this if i'm carving up the vector.
+        //for l2 in 0..sz_l1*sz_l2 { // way too many threads to schedule. 
+        for l2 in 0..sz_l1 { //
+            //println!("this slice is: {:?}", slice);
+            //scope.spawn(move |_| l2[1][2][3] = [ 3 as u8, 4 as u8]);
+            //scope.spawn(move |v| println!("this slice is: {:?}", v));
+            //this good...
+						//scope.spawn(|_| println!("this slice is: {:?}", v));
+						//scope.spawn(|_| println!("this slice is: {:p}", &raw_v)); // this great start!
+						scope.spawn(|_| { 
+								println!("this slice is: {:p}", &raw_v); 
+
+								/*
+								let mut end : usize = 0;
+								unsafe {
+									end = (*raw_v.0)[0][0].len(); 
+								}
+								println!("end is: {}. sz_l3 is {}", end, sz_l3); 
+								*/
+								println!("each thread iterates on level 2 times level 3 operations {}.", sz_l2 * sz_l3); 
+							
+								//let mut rng = rand::thread_rng();
+			
+								//let mine = l2.clone();
+
+								//let tid : u64 = thread::current().id().into(u64);
+								//println!("threadid {}.", tid);  //can't get this to work. 
+								//let tid = mine as u64; 
+								//let mut rng = ChaCha8Rng::seed_from_u64(tid);
+								//let mut srng = ChaCha8Rng::from_entropy(); //works 
+								//let mut rng = ChaCha8Rng::seed_from_u64(srng.gen_range(0..10));
+								let mut rng = ChaCha8Rng::from_entropy(); //works 
+
+								println!("do the threads get the same random numbers? {}", rng.gen_range(1..=u8::MAX)); 
+
+								//randomly fill (some) of the structure. 
+								for index in 0..sz_l2 * sz_l3 {
+									// random values:
+									//let a = rand::thread_rng().gen_range(1..=u8::MAX);
+									//let b = rand::thread_rng().gen_range(1..=u8::MAX);
+									let a = rng.gen_range(1..=u8::MAX);
+									let b = rng.gen_range(1..=u8::MAX);
+									//let c = rand::thread_rng().gen_range(1..=u8::MAX);
+									//let d = rand::thread_rng().gen_range(1..=u8::MAX);
+			
+									/* //takes too long
+									//random indices: 
+									let i = rand::thread_rng().gen_range(0..sz_l1);
+									let j = rand::thread_rng().gen_range(0..sz_l2);
+									let k = rand::thread_rng().gen_range(0..sz_l3);
+									*/
+									//let m = rand::thread_rng().gen_range(0..sz);
+									let i = rng.gen_range(0..sz_l1);
+									let j = rng.gen_range(0..sz_l2);
+									let k = rng.gen_range(0..sz_l3);
+									 
+								
+									unsafe {
+										(*raw_v.0)[i][j][k] = [a, b]; //this is NOT how i want to fill in, but getting the framework to work. 		
+									}
+								}
+								
+							}
+						); // this great start!
+        }
+
+    });
+
+
+	sort_utils::end_and_print_time(start, "filled with random values.");
+/*
+	for i in 10..12 {
+		for j in 10..12 {
+			for k in 10..12 {
+				println!("{:?}", v[i][j][k]); 
+			}
+		}
+	}
+*/
+
+	let start = SystemTime::now();
+
+
+    let _ = crossbeam::scope(|scope| {
+        for l2 in 0..sz_l1 { //
+						scope.spawn(move|_| { 
+								println!("this slice is: {:p}", &raw_v); 
+
+								println!("this thread is {:?}.", l2); 
+							
+								//randomly fill (some) of the structure. 
+								for index in 0..sz_l2 {
+									 
+									unsafe {
+										(*raw_v.0)[l2][index].sort()
+									}
+								}
+							}
+						); 
+        }
+    });
+
+
+	sort_utils::end_and_print_time(start, "sort bags.");
+
+
+	let start = SystemTime::now();
+
+	let mut count = 0;
+	println!("v.len {} v[i].len {} v[i][j].len {}", v.len(), v[0].len(), v[0][0].len()); 
+	for i in 0..v.len() {
+		for j in 0..v[i].len() {
+			for k in 0..v[i][j].len() {
+				if v[i][j][k] != [0,0] {				
+					//println!("{:?}", v[i][j][k]); 
+					count = count + 1; 
+				}
+			}
+		}
+	}
+
+	sort_utils::end_and_print_time(start, "checked how many filled.");
+	println!("filled in {} values randomly out of {} possible. percent: {}", count, v.len() * v[0].len() * v[0][0].len(), (count as f64 / (v.len() * v[0].len() * v[0][0].len()) as f64 * 100.0) as f64 ); 
+
+
+/*
+	for i in 0..sz_l1 {
+		for j in 0..sz_l2 {
+			for k in 0..sz_l3 {
+				println!("{:?}", v[i][j][k]); 
+			}
+		}
+	}
+*/
+
+
+/* // serial binary searches... works great, but slow. 
+	let start = SystemTime::now(); 
+	// search for a bunch. 
+	let mut total_sought = 0; 
+	let mut total_found = 0; 
+	let mut outer = 0; 
+	let mut middle = 0; 
+	let mut rng = ChaCha8Rng::from_entropy(); //works 
+	//for last in 0..sz_l3 { 
+	for last in 0..sz_l2 * sz_l3 { 
+
+		outer = (outer + 1) % sz_l1;
+		middle = (middle + 1) % sz_l2;
+		
+		let c = rng.gen_range(1..=u8::MAX);
+		let d = rng.gen_range(1..=u8::MAX);
+		let mut answer = v[outer][middle].binary_search(&[c, d]); 
+
+		total_sought = total_sought + 1; 
+		match answer { 
+			//Ok(index) => { total_found = total_found + 1; println!("found {} at index {} ", format!("{}-{}-{}-{}", outer, middle, c, d), index) }, 
+			Ok(index) => { total_found = total_found + 1; },
+			Err(some_error) => (), //println!("not found. index where should be: {}", some_error), 
+		}
+	}
+*/ 
+
+	// parallel binary searches...
+	let start = SystemTime::now(); 
+	// search for a bunch. 
+	//let mut total_sought = 0; 
+	//let mut total_found = 0; 
+	//for last in 0..sz_l3 { 
+	
+    let _ = crossbeam::scope(|scope| {
+        for l2 in 0..sz_l1 { //
+						scope.spawn(move|_| { 
+								println!("this slice is: {:p}", &raw_v); 
+
+								println!("this thread is {:?}.", l2); 
+
+								let mut total_sought = 0; 
+								let mut total_found = 0; 
+								let mut rng = ChaCha8Rng::from_entropy(); //works 
+
+								for middle in 0..sz_l2 {
+									for last in 0..sz_l3 { 
+
+										let c = rng.gen_range(1..=u8::MAX);
+										let d = rng.gen_range(1..=u8::MAX);
+										let mut answer = Ok(0); //default. 
+										unsafe {
+											answer = (*raw_v.0)[l2][middle].binary_search(&[c, d]); 
+
+										}
+										total_sought = total_sought + 1; 
+										match answer { 
+											//Ok(index) => { total_found = total_found + 1; println!("found {} at index {} ", format!("{}-{}-{}-{}", outer, middle, c, d), index) }, 
+											Ok(index) => { total_found = total_found + 1; },
+											Err(some_error) => (), //println!("not found. index where should be: {}", some_error), 
+										}
+									}
+								}
+
+								println!("thread {} - found {} out of searched {}", l2, total_found, total_sought); 
+													
+							}); 
+        } //end outer loop
+    });
+
+
+	sort_utils::end_and_print_time(start, "binary searches.");
+
 }
 
 
