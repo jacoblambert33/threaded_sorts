@@ -8,6 +8,12 @@ use std::time::SystemTime;
 use std::thread;
 
 #[derive(Clone, Copy)]
+struct WrapperBagExt(*mut Vec<Vec<Vec<[u8; 6]>>>);
+
+unsafe impl Send for WrapperBagExt {}
+unsafe impl Sync for WrapperBagExt {}
+
+#[derive(Clone, Copy)]
 struct WrapperBag(*mut Vec<Vec<Vec<[u8; 2]>>>);
 
 unsafe impl Send for WrapperBag {}
@@ -105,7 +111,7 @@ fn create_tuple_buckets_reverse_order() -> Vec<(u8, Vec<(u8, u8, u8)>)> {
 //fn create_array_three_tuples_reverse_order() -> [[(u8, u8, u8); 256 *256 * 256]; 256] {
 //fn create_array_three_tuples_reverse_order() -> Box<[[(u8, u8, u8); 256 *256 * 256]; 256]> { //this what i want, but it requires 12 GB. so i'll test with half
 //i'm able to creat so many more tuples as an array of arrays than as one array of tuples.
-fn create_array_three_tuples_maxvm_reverse_order() -> Box<[[(u8, u8, u8); 256 * 256 * 256]; 8]> {
+fn _create_array_three_tuples_maxvm_reverse_order() -> Box<[[(u8, u8, u8); 256 * 256 * 256]; 8]> {
     //capacity <<= 8 * 2; //expand the capacity to hold a tuple of three u8 values - the limit on my machine. (four u8 values - to get all the combinations.
 
     //let mut v = [Vec::<(u8, u8, u8)>::with_capacity(capacity); 256 ]; trait copy not impl.
@@ -218,13 +224,36 @@ fn create_vecvecvecarr() -> Vec<Vec<Vec<[u8; 2]>>> {
     v
 }
 
-//
+// space for random variables
 fn create_vecvecvecarr_variable(a: usize, b: usize, c: usize) -> Vec<Vec<Vec<[u8; 2]>>> {
     let v = vec![vec![vec![[0; 2]; a]; b]; c];
     v
 }
 
-fn create_little_array_four_prototype() -> Box<[[u8; 4]; 4 * 4 * 4 * 4]> {
+// store the indices i write from for correctness checks/consistency/traceability. see the effects it produces on memory, sort, and search.
+fn create_vecvecvecarrlong_variable(a: usize, b: usize, c: usize) -> Vec<Vec<Vec<[u8; 6]>>> {
+    let v = vec![vec![vec![[0; 6]; a]; b]; c];
+    v
+}
+fn _create_vecvecvectuplearrs_variable(
+    a: usize,
+    b: usize,
+    c: usize,
+) -> Vec<Vec<Vec<([u8; 2], [u8; 4])>>> {
+    let v = vec![vec![vec![([0; 2], [0; 4]); a]; b]; c];
+    v
+}
+
+fn _create_vecvecvecarrarrs_variable(
+    a: usize,
+    b: usize,
+    c: usize,
+) -> Vec<Vec<Vec<Vec<([u8; 2], [u8; 4])>>>> {
+    let v = vec![vec![vec![vec![([0; 2], [0; 4]); 2]; a]; b]; c];
+    v
+}
+
+fn _create_little_array_four_prototype() -> Box<[[u8; 4]; 4 * 4 * 4 * 4]> {
     let mut arr = Box::new([[0; 4]; 4 * 4 * 4 * 4]); //this hopefully feasible.
 
     let mut i = 0;
@@ -252,7 +281,7 @@ fn create_little_array_four_prototype() -> Box<[[u8; 4]; 4 * 4 * 4 * 4]> {
     arr
 }
 
-fn create_array_four_reverse_order() -> Box<[[u8; 4]; 256 * 256 * 256 * 48]> {
+fn _create_array_four_reverse_order() -> Box<[[u8; 4]; 256 * 256 * 256 * 48]> {
     //fn create_array_four_reverse_order() -> Box<[Box<[u8;4]>; 256*256*256*48]> {
 
     //let mut arr = [[0; 4]; 256 * 256 * 256 * 48 ]; //too big for stack.
@@ -279,7 +308,7 @@ fn create_array_four_reverse_order() -> Box<[[u8; 4]; 256 * 256 * 256 * 48]> {
     arr
 }
 
-fn create_array_four_tuples_reverse_order() -> Box<[(u8, u8, u8, u8); 256 * 256 * 256 * 1]> {
+fn _create_array_four_tuples_reverse_order() -> Box<[(u8, u8, u8, u8); 256 * 256 * 256 * 1]> {
     let mut v = Box::new([(0, 0, 0, 0); 256 * 256 * 256 * 1]); //this hopefully feasible.
 
     let mut each_tup = (0, 0, 0, 0);
@@ -644,7 +673,7 @@ fn _sort_array_buckets(buckets: &mut [(u8, u8, u8); 256 * 256]) {
 }
 
 //TODO: overflows its stack #[test]
-fn t_create_arr_samesz_tuples() {
+fn _t_create_arr_samesz_tuples() {
     let start = SystemTime::now();
     // ideally:
     //fn create_array_three_tuples_reverse_order() -> [[(u8, u8, u8); 256 * 256 * 256]; 256] {
@@ -720,11 +749,11 @@ fn t_create_arr_samesz_tuples() {
 }
 
 //TODO: #[test]
-fn t_create_arr_maxsz_tuples() {
+fn _t_create_arr_maxsz_tuples() {
     let start = SystemTime::now();
     // ideally, but biggest i can get on my VM is 128.
     //fn create_array_three_tuples_reverse_order() -> [[(u8, u8, u8); 256 * 256 * 256]; 256] {
-    let x = create_array_three_tuples_maxvm_reverse_order();
+    let x = _create_array_three_tuples_maxvm_reverse_order();
     sort_utils::end_and_print_time(
         start,
         &format!(
@@ -758,14 +787,14 @@ fn t_create_arr_maxsz_tuples() {
 }
 
 //#[test]
-fn t_create_arr_four_tuples() {
+fn _t_create_arr_four_tuples() {
     // i can't build more than ~48 * 256^3 tuples as one array.
     //  on my VM at home.
 
     let start = SystemTime::now();
     //fn create_array_four_tuples_reverse_order() -> Box<[[(u8, u8, u8, u8); 256*256*256*128]> {
-		//TODO: overflows its stack. 
-    let x = create_array_four_tuples_reverse_order();
+    //TODO: overflows its stack.
+    let x = _create_array_four_tuples_reverse_order();
     sort_utils::end_and_print_time(start, &format!("created {} arrays.", x.len()));
 
     println!("the array has {} elements.", x.len());
@@ -792,8 +821,8 @@ fn t_get_one_random_tuple() {
     println!("got a tuple: {} {} {} {}", t.0, t.1, t.2, t.3);
 }
 
-#[test]
-fn t_search_random_tuple_in_one_array() {
+//issue with this for now abandoned strategy. #[test]
+fn _t_search_random_tuple_in_one_array() {
     // limitation imposed by my VM with 8GB memory.
     let mut t = create_one_tuple_random_bytes();
     while t.0 > 47 {
@@ -801,7 +830,7 @@ fn t_search_random_tuple_in_one_array() {
         t = create_one_tuple_random_bytes();
     }
 
-    let x = create_array_four_tuples_reverse_order();
+    let x = _create_array_four_tuples_reverse_order();
 
     let answer = x.binary_search(&t);
 
@@ -822,8 +851,8 @@ fn _get_just_my_three_tuple(t0: usize) -> [(u8, u8, u8); 256 * 256 * 256] {
     y
 }
 
-#[test] //remove from test while i try to use gdb to look at the stack.
-pub fn t_search_random_tuple_in_many_arrays() {
+//TODO: overflows its stack. #[test] //remove from test while i try to use gdb to look at the stack.
+pub fn _t_search_random_tuple_in_many_arrays() {
     // limitation imposed by my VM with 8GB memory.
     let mut t = create_one_tuple_random_bytes();
     while t.0 > 47 {
@@ -887,7 +916,7 @@ fn _drop_save_stack(
 }
 
 /// binary search. TODO: compare to https://doc.rust-lang.org/std/primitive.slice.html#method.binary_search
-pub fn my_bin_search(
+pub fn _my_bin_search(
     v: Box<[(u8, u8, u8); 256 * 256 * 256]>,
     p: usize,
     r: usize,
@@ -909,10 +938,10 @@ pub fn my_bin_search(
 }
 
 //TODO: overflows its stack #[test]
-fn t_create_array_four_reverse_order() {
+fn _t_create_array_four_reverse_order() {
     //too big for stack - but i can Box:
-    let _arr = create_array_four_reverse_order();
-    let arr = create_little_array_four_prototype();
+    //let arr = _create_array_four_reverse_order();
+    let arr = _create_little_array_four_prototype();
     //let arr = create_array_four_large();
     println!("you created an array of arrays of length {}", arr.len());
     println!("what does it look like?");
@@ -1314,6 +1343,353 @@ fn t_create_cb_vecvecvecarr() {
             });
             } //end outer loop
         });
+
+    //println!("total: found {} out of searched {}", found, sought);
+
+    sort_utils::end_and_print_time(start, "binary searches.");
+}
+
+/*
+#[test]
+fn t_arr_and_tuple_failed_too_much_memory() {
+
+    //workable/testable capacity:
+    let sz_l1 = 4;
+    let sz_l2 = 256;
+    let sz_l3 = 256 * 256;
+
+    let start = SystemTime::now();
+
+    let mut v = create_vecvecvectuplearrs_variable(sz_l3, sz_l2, sz_l1);
+
+    sort_utils::end_and_print_time(start, "created data structure.");
+
+    println!(
+        "created vec sz {} containings vecs of sz {} containing vecs of tuples with arrays inside of sz {}",
+        v.len(),
+        v[0].len(),
+        v[0][0].len(),
+        //v[0][0][0].len()
+    );
+
+
+    let start = SystemTime::now();
+
+    let raw_v: WrapperBagExt = WrapperBagExt(&mut v);
+
+    // crossbeam scoped threads let rust know the lifetime of the threads is over before main.
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            // it seems reasonable on many machines to carve up the number of work items into the outer number of arrays. this is problematic on my little VM though. tuning this for your machine might be appropriate, but it alters correctness of the algorithm so proceed carefully.
+            //scope.spawn(|_| {
+            scope.spawn(move|_| { //try move to get index.
+                println!(
+                                        //NOTE: must deference? somehow touch the pointer inside the closure to make it available. TODO: know exactly why.
+                    "\tDEBUG: show each thread same pointer same data structure: {:p}",
+                    &raw_v
+                );
+
+                println!(
+                    "\tDEBUG: each thread assigned work of level 2 times level 3 operations: {}.",
+                    sz_l2 * sz_l3
+                );
+
+                //initialize the rng once only outside the loop - for speed.
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                println!(
+                    "\tDEBUG: show threads don't get the same random numbers: {}",
+                    rng.gen_range(1..=u8::MAX)
+                );
+
+                //randomly fill (some) of the structure.
+                //for _ in 0..sz_l2 * sz_l3 {
+                for middle in 0..sz_l2 {
+                                        //for inner in 0..sz_l3 { //conceptually same as below.
+                                        for inner in 0..sz_l2 {
+                                            for inmost in 0..sz_l2 {
+                                                // random values:
+                                                let a = rng.gen_range(1..=u8::MAX);
+                                                let b = rng.gen_range(1..=u8::MAX);
+
+                                                //let m = rand::thread_rng().gen_range(0..sz);
+                                                //random indices:
+                                                let i = rng.gen_range(0..sz_l1); //this hacky, as i am mixing bytes and indices. realize that until i work it out completely.
+                                                let j = rng.gen_range(0..sz_l2);
+                                                let k = rng.gen_range(0..sz_l3);
+
+                                                //assign random values in the Bag randomly. we don't care if we're overwriting values for this prototype.
+                                                //let inner_most_index = (middle * sz_l2) + inner;
+                                                let inner_most_index = (inner * sz_l2) + inmost;
+                                                unsafe {
+                                                        //shows completeness. all entries filled in order, to prove methodology before randomization.
+                                                        //(*raw_v.0)[outer][middle][inner_most_index] = ([a, b], [outer as u8, middle as u8, inner as u8, inmost as u8]);
+                                                        //randomly fill, but keep indices so i can track which is filled.
+                                                        (*raw_v.0)[i][j][k] = ([a, b], [outer as u8, middle as u8, inner as u8, inmost as u8]);
+                                                        //println!("another sense of the filling - what random value am i assigning? i {}, j {}, k {}", i, j, k);
+                                                }
+                                            }
+                                        }
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "filled Bag w/ random values.");
+*/
+
+#[test]
+fn t_arr_long() {
+    /*
+        //test capacity:
+       let sz_l1 = 256; //192; //256; //128; //64; //32; //16; //32; //16; //4; //128; //32 takes 131 seconds on my VM; slowest step is random creation of data.  //16 makes a total of 1.57Gb RAM used on my VM at peak.
+       let sz_l2 = 256; //4; //128; //64; //16; //32; //64; //128; //256;
+       let sz_l3 = 256*256; //16; //256*256;
+    */
+
+    /*
+        //test correctness:
+        let sz_l1 = 2;
+        let sz_l2 = 8;
+        let sz_l3 = 8 * 8;
+    */
+
+    //workable/testable capacity:
+    //let sz_l1 = 108; //will NOT run on my VM.
+    //let sz_l1 = 106; //the biggest on my VM. 10.7G out of 11 avail. 366s. //with BS: still 10.7 but goes 300+ MB into swap. 434s.
+    //let sz_l1 = 99; // biggest after mods - impl tweaks using slightly more memory. 100-103 almost fit but hit swap variously in each phase.. 10.5Gb, 362s, NO swap. swap kills at least the performance of the creation of the data structure.
+    //let sz_l1 = 80; // 8.47G. runs in 258s. // 8.3G runs in 241s. //8.6 in 286s.
+    //let sz_l1 = 72; // 7.72G. runs in 232s. //improve sort: 7.85G 334s. restarting VM.
+    //let sz_l1 = 64; // 6.76G. runs in 165s.
+    //let sz_l1 = 56; // 6.15G. runs in 150s.
+    //let sz_l1 = 48; // 5.25G. runs in 122s. //with BS: 5.42 140s. //improved sort: 5.56 and 163s.
+    //let sz_l1 = 32; // 3.75G. runs in 78s. //with BS: 3.91 110s //improved sort: 4.05 and 102s.
+    //let sz_l1 = 24; // 2.97G. runs in 57s. //with BS: 3.16 67s. //improved sort: 3.27 and 74s.
+    //let sz_l1 = 16; // 2.22G. runs in 36s.
+    let sz_l1 = 8; // 1.63G. runs in 16s. //improved sort: 1.74G 22s.
+    let sz_l2 = 256;
+    let sz_l3 = 256 * 256;
+
+    let start = SystemTime::now();
+
+    let mut v = create_vecvecvecarrlong_variable(sz_l3, sz_l2, sz_l1);
+
+    sort_utils::end_and_print_time(start, "created data structure.");
+
+    let start = SystemTime::now();
+
+    let raw_v: WrapperBagExt = WrapperBagExt(&mut v);
+
+    // crossbeam scoped threads let rust know the lifetime of the threads is over before main.
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            // it seems reasonable on many machines to carve up the number of work items into the outer number of arrays. this is problematic on my little VM though. tuning this for your machine might be appropriate, but it alters correctness of the algorithm so proceed carefully.
+            //scope.spawn(|_| {
+            scope.spawn(move |_| {
+                //try move to get index.
+                /*
+                println!(
+                                        //NOTE: must deference? somehow touch the pointer inside the closure to make it available. disjoint capture.
+                    "\tDEBUG: move changes the pointer - same data structure: {:p}",
+                    &raw_v
+                );
+                                */
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                   /*
+                                                   println!(
+                                                       "\tDEBUG: each thread assigned work of level 2 times level 3 operations: {}.",
+                                                       sz_l2 * sz_l3
+                                                   );
+                                   */
+                //initialize the rng once only outside the loop - for speed.
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+                                                          /*
+                                                                          println!(
+                                                                              "\tDEBUG: show threads don't get the same random numbers: {}",
+                                                                              rng.gen_range(1..=u8::MAX)
+                                                                          );
+                                                          */
+
+                //randomly fill (some) of the structure.
+                //for _ in 0..sz_l2 * sz_l3 {
+                for middle in 0..sz_l2 {
+                    //for inner in 0..sz_l3 { //conceptually same as below.
+                    for inner in 0..sz_l2 {
+                        for inmost in 0..sz_l2 {
+                            // random values:
+                            let a = rng.gen_range(1..=u8::MAX);
+                            let b = rng.gen_range(1..=u8::MAX);
+
+                            //let m = rand::thread_rng().gen_range(0..sz);
+                            //random indices:
+                            let i = rng.gen_range(0..sz_l1); //this hacky, as i am mixing bytes and indices. realize that until i work it out completely.
+                            let j = rng.gen_range(0..sz_l2);
+                            let k = rng.gen_range(0..sz_l3);
+
+                            //assign random values in the Bag randomly. allows overwriting. acceptable bc the focus is on the technique of creation, sort, and search using rust and these crates.
+                            //let inner_most_index = (middle * sz_l2) + inner;
+                            //let inner_most_index = (inner * sz_l2) + inmost;
+                            unsafe {
+                                (*raw_v.0)[i][j][k] =
+                                    [a, b, outer as u8, middle as u8, inner as u8, inmost as u8];
+                                //println!("another sense of the filling - what random value am i assigning? i {}, j {}, k {}", i, j, k);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "filled Bag w/ random values.");
+
+    /*
+        // print to get a sense of correctness only; i.e., is the intended effect apparent? yes.
+        for i in 0..sz_l1 {
+            for j in 0..sz_l2 {
+                for k in 0..sz_l3{
+                    println!("{:x} {:x} {:x} {:x} {:x} {:x} {:x} {:x}", i, j, v[i][j][k][0], v[i][j][k][1], v[i][j][k][2], v[i][j][k][3], v[i][j][k][4], v[i][j][k][5] );
+                }
+            }
+        }
+    */
+
+    let start = SystemTime::now();
+
+    // here we have random values; the first two elements are sorted since we stored in an array. one goal here will be to study this method (middling method) against the obvious and extreme alternatives: create one giant vector of random values, or create vectors of single values four times (many arrays). there are cpu and memory tradeoffs for each; e.g., sort is required to search and many small sorts are extremely fast with many available threads. four byte values is (beyond) the limit of values i can check on my VM; at least at the boundary, so it's a good choice to see whether any of these alternatives can get me there.
+    let _ = crossbeam::scope(|scope| {
+        for l2 in 0..sz_l1 {
+            // create a thread for the outer number of elements.
+            scope.spawn(move |_| {
+                //println!("\tDEBUG: move changes the pointer - same data structure: {:p}", &raw_v);
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                /*
+                                println!(
+                                    "\tDEBUG: move also obtains a (sort of) thread id: {:?}.",
+                                    l2
+                                );
+                */
+
+                // the work of each thread is to sort all of the 3rd/4th values in each of the vectors of the 2d value, belonging to the values of the 1st value (assigned for each thread).
+                for index in 0..sz_l2 {
+                    // default/system sort expected to be good enough because the size of the innermost vector is capped at 2^16.
+                    //unsafe { (*raw_v.0)[l2][index].sort() } //solid.
+                    unsafe { (*raw_v.0)[l2][index].sort_by_key(|&[m, n, _o, _p, _q, _r]| [m, n]) }
+                    //faster by ~20%?
+                    //unsafe { (*raw_v.0)[l2][index].par_sort() //slower on this small dataset. }
+                    //unsafe { (*raw_v.0)[l2][index].sort_by(|a, b| a[0].cmp(&b[0])) } //this method not written correctly.
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "sort bags.");
+
+    /*
+        // print to get a sense of sorting correctness only; i.e., are 3rd/4th values sorted? yes.
+        for i in 0..2 {
+            //for j in 0..sz_l2 {
+            for j in 0..2 {
+                //for k in 0..sz_l3{
+                for k in 40000..40010{
+                    println!("{:x} {:x} {:x} {:x} {:x} {:x} {:x} {:x}", i, j, v[i][j][k][0], v[i][j][k][1], v[i][j][k][2], v[i][j][k][3], v[i][j][k][4], v[i][j][k][5]);
+                }
+            }
+        }
+    */
+
+    let start = SystemTime::now();
+
+    // give the user a sense of how many values we filled in by reporting how many nonzero values we find.
+    let mut count = 0;
+    println!(
+        "v.len {} v[i].len {} v[i][j].len {}",
+        v.len(),
+        v[0].len(),
+        v[0][0].len()
+    );
+    for i in 0..v.len() {
+        for j in 0..v[i].len() {
+            for k in 0..v[i][j].len() {
+                if v[i][j][k] != [0, 0, 0, 0, 0, 0] {
+                    count = count + 1;
+                }
+            }
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "inspect: how many filled.");
+    println!(
+        "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
+        count,
+        v.len() * v[0].len() * v[0][0].len(),
+        (count as f64 / (v.len() * v[0].len() * v[0][0].len()) as f64 * 100.0) as f64
+    );
+
+    /*
+        for i in 0..sz_l1 {
+            for j in 0..sz_l2 {
+                for k in 0..sz_l3 {
+                    println!("{:?}", v[i][j][k]);
+                }
+            }
+        }
+    */
+
+    // parallel binary searches...
+    let start = SystemTime::now();
+    // search for a bunch.
+    //let mut sought = 0;
+    //let mut found = 0;
+    //for last in 0..sz_l3 {
+
+    let _ = crossbeam::scope(|scope| {
+        for l2 in 0..sz_l1 {
+            //
+            scope.spawn(move |_| {
+                //println!("\tDEBUG: notice move appears to copy the pointer (different values now): {:p}", &raw_v);
+
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                //println!("\tDEBUG: move also obtains a (sort of) thread id: {:?}.", l2);
+
+                let mut total_sought = 0;
+                let mut total_found = 0;
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                for middle in 0..sz_l2 {
+                    for _ in 0..sz_l3 {
+                        let c = rng.gen_range(1..=u8::MAX);
+                        let d = rng.gen_range(1..=u8::MAX);
+                        let mut _answer = Ok(0); //default.
+                                                 //println!("\tDEBUG: searching for {}, {}, {}, {}", l2, middle, c, d);
+                        unsafe {
+                            //_answer = (*raw_v.0)[l2][middle].binary_search(&[c, d]);
+                            _answer = (*raw_v.0)[l2][middle]
+                                .binary_search_by_key(&[c, d], |&[m, n, _o, _p, _q, _r]| [m, n])
+                        }
+                        total_sought = total_sought + 1;
+                        match _answer {
+                            //Ok(index) => { unsafe {  total_found = total_found + 1; println!("found {} at index {} ", format!("{}-{}-{}-{} {}-{}-{}-{}", l2, middle, c, d, (*raw_v.0)[l2][middle][index][2],(*raw_v.0)[l2][middle][index][3],(*raw_v.0)[l2][middle][index][4],(*raw_v.0)[l2][middle][index][5]), index) } },
+                            Ok(_index) => {
+                                total_found = total_found + 1;
+                            }
+                            Err(_some_error) => (), //println!("not found. index where should be: {}", _some_error),
+                        }
+                    }
+                }
+
+                /*
+                println!(
+                    "\tDEBUG: thread {} - found {} out of searched {}",
+                    l2, total_found, total_sought
+                ); */
+                //sought = sought + total_sought;
+                //found = found + total_found;
+            });
+        } //end outer loop
+    });
 
     //println!("total: found {} out of searched {}", found, sought);
 
