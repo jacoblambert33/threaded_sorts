@@ -1,11 +1,67 @@
 use rand::prelude::*;
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
+use rand_xorshift::XorShiftRng;
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::time::SystemTime;
 //use std::cell::RefCell;
 use std::thread;
+
+#[derive(Clone, Copy)]
+struct WrapperTwoStageOneLayer(*mut Vec<[u8; 2]>);
+
+unsafe impl Send for WrapperTwoStageOneLayer {}
+unsafe impl Sync for WrapperTwoStageOneLayer {}
+
+#[derive(Clone, Copy)]
+struct WrapperTwoStage(*mut Vec<Vec<[u8; 2]>>);
+
+unsafe impl Send for WrapperTwoStage {}
+unsafe impl Sync for WrapperTwoStage {}
+
+#[derive(Clone, Copy)]
+struct WrapperOneArr2(*mut Vec<[u8; 2]>);
+
+unsafe impl Send for WrapperOneArr2 {}
+unsafe impl Sync for WrapperOneArr2 {}
+
+#[derive(Clone, Copy)]
+struct WrapperOneArr(*mut Vec<[u8; 4]>);
+
+unsafe impl Send for WrapperOneArr {}
+unsafe impl Sync for WrapperOneArr {}
+
+#[derive(Clone, Copy)]
+//struct WrapperArrsExt(*mut Vec<Vec<Vec<Vec<bool>>>>);
+struct WrapperArrsExt(*mut Vec<Vec<Vec<[bool; 256]>>>);
+
+unsafe impl Send for WrapperArrsExt {}
+unsafe impl Sync for WrapperArrsExt {}
+
+#[derive(Clone, Copy)]
+struct WrapperBag2566(*mut Vec<Vec<[u8; 6]>>);
+
+unsafe impl Send for WrapperBag2566 {}
+unsafe impl Sync for WrapperBag2566 {}
+
+#[derive(Clone, Copy)]
+struct WrapperBag2565(*mut Vec<Vec<[u8; 5]>>);
+
+unsafe impl Send for WrapperBag2565 {}
+unsafe impl Sync for WrapperBag2565 {}
+
+#[derive(Clone, Copy)]
+struct WrapperBag2562(*mut Vec<Vec<[u8; 2]>>);
+
+unsafe impl Send for WrapperBag2562 {}
+unsafe impl Sync for WrapperBag2562 {}
+
+#[derive(Clone, Copy)]
+struct WrapperBag25622(*mut Vec<Vec<Vec<[u8; 2]>>>);
+
+unsafe impl Send for WrapperBag25622 {}
+unsafe impl Sync for WrapperBag25622 {}
 
 #[derive(Clone, Copy)]
 struct WrapperBagExt(*mut Vec<Vec<Vec<[u8; 6]>>>);
@@ -43,6 +99,33 @@ impl PartialEq for User {
         self.id == other.id
     }
 }
+
+//e.g., static COUNTER: AtomicUsize = AtomicUsize::new(0);
+static R: u8 = 31;
+static M: u8 = 255;
+fn modular_hash(input: [u8; 8]) -> u8 {
+    //fix R at 31. fix M as 251 for the set. numbers prime. close enough to size of set.
+    let mut hash: u8 = 0;
+    for i in 0..8 {
+        hash = (R * hash + input[i]) % M;
+    }
+    hash
+}
+
+/*
+fn modular_hash(r: u8, m: u32, input: [u8; 8]) -> u8 {
+    //fix R at 31. fix M as 257 for the set and adjust here. is prime number near the size of the set.
+    let mut hash : u32 = 0;
+    for i in 0..input.len() {
+    hash = u32::from(u32::from(r) * hash + u32::from(input[i])) % m;
+        if hash > 255 {
+            hash = u32::from(modular_hash(31, 257, input));
+        }
+    }
+    //u8::from(hash)
+    hash as u8
+}
+*/
 
 fn build_user(id: u64) -> User {
     //active: bool,
@@ -224,6 +307,56 @@ fn create_vecvecvecarr() -> Vec<Vec<Vec<[u8; 2]>>> {
     v
 }
 
+fn create_twostep(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec<Vec<[u8; 2]>> {
+    let mut v = vec![vec![[0 as u8; 2]; sz_l2 * sz_l3 * sz_l4]; sz_l1];
+    v
+}
+
+fn create_twoonelayer(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec<[u8; 2]> {
+    let mut v = vec![[0 as u8; 2]; sz_l2 * sz_l3 * sz_l4 * sz_l1];
+    v
+}
+
+fn create_2566(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec<Vec<[u8; 6]>> {
+    let mut v = vec![vec![[0 as u8; 6]; sz_l1]; sz_l3 * sz_l4 * sz_l1];
+    v
+}
+
+fn create_2565(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec<Vec<[u8; 5]>> {
+    let mut v = vec![vec![[0 as u8; 5]; sz_l1]; sz_l3 * sz_l4 * sz_l1];
+    v
+}
+
+fn create_2564(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec<Vec<[u8; 4]>> {
+    let mut v = vec![vec![[0 as u8; 4]; sz_l1]; sz_l3 * sz_l4 * sz_l1];
+    v
+}
+
+fn create_2563(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec<Vec<[u8; 3]>> {
+    //let mut v = vec![vec![[0 as u8; 3]; sz_l1];  sz_l3 * sz_l4 * sz_l1 ];
+    let mut v = vec![vec![[0 as u8; 3]; sz_l2 * sz_l3 * sz_l4]; sz_l1]; // 256 bags of sz 16 mil.
+    v
+}
+
+fn create_2562(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec<Vec<[u8; 2]>> {
+    //let mut v = vec![vec![[0 as u8; 2]; sz_l1];  sz_l3 * sz_l4 * sz_l1 ]; //16 mil bags of sz 256
+    let mut v = vec![vec![[0 as u8; 2]; sz_l2 * sz_l3 * sz_l4]; sz_l1]; // 256 bags of sz 16 mil.
+    v
+}
+// space for random variables
+fn create_25622(a: usize, b: usize, c: usize, d: usize) -> Vec<Vec<Vec<[u8; 2]>>> {
+    let v = vec![vec![vec![[0; 2]; a * b]; c]; d];
+    v
+}
+
+//fn create_largevec(a: usize) -> Vec<[u8; a]> { error: this would need to be a constant
+//fn create_largevec() -> Vec<[[u8; 4]; 256 * 256 * 256 * 256]> {
+fn create_largevec() -> Vec<[u8; 4]> {
+    //let v = vec![[0 as u8; 4]; 256 * 256 * 256 * 256]; //memory allocation failed
+    let v = vec![[0 as u8; 4]; 128 * 256 * 256 * 256];
+    v
+}
+
 // space for random variables
 fn create_vecvecvecarr_variable(a: usize, b: usize, c: usize) -> Vec<Vec<Vec<[u8; 2]>>> {
     let v = vec![vec![vec![[0; 2]; a]; b]; c];
@@ -235,6 +368,14 @@ fn create_vecvecvecarrlong_variable(a: usize, b: usize, c: usize) -> Vec<Vec<Vec
     let v = vec![vec![vec![[0; 6]; a]; b]; c];
     v
 }
+
+//fn create_vecvecvecvec(a: usize, b: usize, c: usize, d: usize) -> Vec<Vec<Vec<Vec<bool>>>> {
+fn create_vecvecvecvec(b: usize, c: usize, d: usize) -> Vec<Vec<Vec<[bool; 256]>>> {
+    //let v = vec![vec![vec![vec![false; a]; b]; c]; d];
+    let v = vec![vec![vec![[false; 256]; b]; c]; d];
+    v
+}
+
 fn _create_vecvecvectuplearrs_variable(
     a: usize,
     b: usize,
@@ -1281,8 +1422,8 @@ fn t_create_cb_vecvecvecarr() {
     println!(
         "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
         count,
-        v.len() * v[0].len() * v[0][0].len(),
-        (count as f64 / (v.len() * v[0].len() * v[0][0].len()) as f64 * 100.0) as f64
+        sz_l1 * sz_l2 * sz_l3,
+        (count as f64 / (sz_l1 * sz_l2 * sz_l3) as f64 * 100.0) as f64
     );
 
     /*
@@ -1692,6 +1833,1441 @@ fn t_arr_long() {
     });
 
     //println!("total: found {} out of searched {}", found, sought);
+
+    sort_utils::end_and_print_time(start, "binary searches.");
+}
+
+#[test]
+fn t_arrall() {
+    /* uses only 5.63 Gb but takes about fifteen minutes on my VM.
+            //test capacity:
+           let sz_l1 = 256; //192; //256; //128; //64; //32; //16; //32; //16; //4; //128; //32 takes 131 seconds on my VM; slowest step is random creation of data.  //16 makes a total of 1.57Gb RAM used on my VM at peak.
+           let sz_l2 = 256; //4; //128; //64; //16; //32; //64; //128; //256;
+           let sz_l3 = 256; //16; //256*256;
+           let sz_l4 = 256; //16; //256*256;
+    */
+
+    /*
+            //test correctness:
+            let sz_l1 = 1;
+            let sz_l2 = 4;
+            let sz_l3 = 4;
+            //let sz_l4 = 4;
+    */
+
+    //workable/testable capacity:
+    //let sz_l1 = 108; //
+    //let sz_l1 = 106; //
+    //let sz_l1 = 99; //
+    //let sz_l1 = 80; //
+    //let sz_l1 = 72; //
+    //let sz_l1 = 64; //
+    //let sz_l1 = 56; //
+    //let sz_l1 = 48; //
+    //let sz_l1 = 32; //
+    //let sz_l1 = 24; //
+    //let sz_l1 = 16; //
+    //let sz_l1 = 4; //created data structure. 0.455 seconds filled Bag w/ random values. 88.276 seconds
+
+    let sz_l1 = 2; //created data structure. 0.257 seconds filled Bag w/ random values. 54.42 seconds
+    let sz_l2 = 256;
+    let sz_l3 = 256;
+    //let sz_l4 = 256;
+
+    let start = SystemTime::now();
+
+    //let mut v = create_vecvecvecvec(sz_l4, sz_l3, sz_l2, sz_l1);
+    let mut v = create_vecvecvecvec(sz_l3, sz_l2, sz_l1);
+
+    sort_utils::end_and_print_time(start, "created data structure.");
+
+    let start = SystemTime::now();
+
+    let raw_v: WrapperArrsExt = WrapperArrsExt(&mut v);
+
+    // crossbeam scoped threads let rust know the lifetime of the threads is over before main.
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            // it seems reasonable on many machines to carve up the number of work items into the outer number of arrays. this is problematic on my little VM though. tuning this for your machine might be appropriate, but it alters correctness of the algorithm so proceed carefully.
+            //scope.spawn(|_| {
+            scope.spawn(move |_| {
+                //try move to get index.
+                /*
+                println!(
+                                        //NOTE: must deference? somehow touch the pointer inside the closure to make it available. disjoint capture.
+                    "\tDEBUG: move changes the pointer - same data structure: {:p}",
+                    &raw_v
+                );
+                                */
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                   /*
+                                                   println!(
+                                                       "\tDEBUG: each thread assigned work of level 2 times level 3 operations: {}.",
+                                                       sz_l2 * sz_l3
+                                                   );
+                                   */
+                //initialize the rng once only outside the loop - for speed.
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+                                                          /*
+                                                                          println!(
+                                                                              "\tDEBUG: show threads don't get the same random numbers: {}",
+                                                                              rng.gen_range(1..=u8::MAX)
+                                                                          );
+                                                          */
+
+                //randomly fill (some) of the structure.
+                //for _ in 0..sz_l2 * sz_l3 {
+                for middle in 0..sz_l2 {
+                    //for inner in 0..sz_l3 { //conceptually same as below.
+                    for inner_one in 0..sz_l3 {
+                        for innner_two in 0..256 {
+                            //inmost is an array with fixed size.
+                            // random values:
+                            //let a = rng.gen_range(1..=u8::MAX);
+                            //let b = rng.gen_range(1..=u8::MAX);
+
+                            //let m = rand::thread_rng().gen_range(0..sz);
+                            //random indices:
+                            let i = rng.gen_range(0..sz_l1); //this hacky, as i am mixing bytes and indices. realize that until i work it out completely.
+                            let j = rng.gen_range(0..sz_l2);
+                            let k = rng.gen_range(0..sz_l3);
+                            //let m = rng.gen_range(0..sz_l4);
+                            let m = rng.gen_range(0..256);
+
+                            //assign random values in the Bag randomly. allows overwriting. acceptable bc the focus is on the technique of creation, sort, and search using rust and these crates.
+                            //let inner_most_index = (middle * sz_l2) + inner;
+                            //let inner_most_index = (inner * sz_l2) + inmost;
+                            unsafe {
+                                (*raw_v.0)[i][j][k][m] = true;
+                                //[a, b, outer as u8, middle as u8, inner as u8, inmost as u8];
+                                //println!("another sense of the filling - what random value am i assigning? i {}, j {}, k {}", i, j, k);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "filled Bag w/ random values.");
+
+    /*
+            // print to get a sense of correctness only; i.e., is the intended effect apparent? yes.
+            for i in 0..sz_l1 {
+                for j in 0..sz_l2 {
+                    for k in 0..sz_l3{
+                                        //for m in 0..sz_l4{
+                                        for m in 0..256{
+                        println!("{:x} {:x} {:x} {:x} {}", i, j, k, m, v[i][j][k][m]);
+                                        }
+                    }
+                }
+            }
+    */
+
+    /* // sort not necessary. order comes from the array.
+     */
+
+    let start = SystemTime::now();
+
+    // give the user a sense of how many values we filled in by reporting how many nonzero values we find.
+    let mut count = 0;
+    println!(
+        "v.len {} v[i].len {} v[i][j].len {}",
+        v.len(),
+        v[0].len(),
+        v[0][0].len()
+    );
+    for i in 0..sz_l1 {
+        for j in 0..sz_l2 {
+            for k in 0..sz_l3 {
+                //for m in 0..sz_l4 {
+                for m in 0..256 {
+                    if v[i][j][k][m] {
+                        count = count + 1;
+                    }
+                }
+            }
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "inspect: how many filled.");
+    println!(
+        "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
+        count,
+        sz_l1 * sz_l2 * sz_l3 * 256, //sz_l4,
+        //(count as f64 / (sz_l1 * sz_l2 * sz_l3 * sz_l4) as f64 * 100.0) as f64
+        (count as f64 / (sz_l1 * sz_l2 * sz_l3 * 256) as f64 * 100.0) as f64
+    );
+
+    // parallel NOTbinary searches...now they're just array lookups.
+    let start = SystemTime::now();
+    // search for a bunch.
+    //let mut sought = 0;
+    //let mut found = 0;
+    //for last in 0..sz_l3 {
+
+    let _ = crossbeam::scope(|scope| {
+        for l2 in 0..sz_l1 {
+            //
+            scope.spawn(move |_| {
+                //println!("\tDEBUG: notice move appears to copy the pointer (different values now): {:p}", &raw_v);
+
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                //println!("\tDEBUG: move also obtains a (sort of) thread id: {:?}.", l2);
+
+                let mut total_sought = 0;
+                let mut total_found = 0;
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                for m in 0..sz_l2 {
+                    for inmid in 0..sz_l3 {
+                        for inner in 0..256 {
+                            let a = rng.gen_range(1..sz_l1);
+                            let b = rng.gen_range(1..sz_l2);
+                            let c = rng.gen_range(1..sz_l3);
+                            let d = rng.gen_range(1..256);
+
+                            unsafe {
+                                /*
+                                //search by index in order:
+                                if 	(*raw_v.0)[l2][m][inmid][inner] {
+                                    total_found = total_found + 1;
+                                }
+                                */
+                                //search by random index:
+                                if (*raw_v.0)[a][b][c][d] {
+                                    total_found = total_found + 1;
+                                }
+                            }
+                            total_sought = total_sought + 1;
+                        }
+                    }
+                }
+
+                println!(
+                    "\tDEBUG: thread {} - found {} out of searched {}",
+                    l2, total_found, total_sought
+                );
+                //sought = sought + total_sought;
+                //found = found + total_found;
+            });
+        } //end outer loop
+    });
+
+    //println!("total: found {} out of searched {}", found, sought);
+
+    sort_utils::end_and_print_time(start, "binary searches.");
+}
+
+#[test]
+fn t_onearr() {
+    /*
+            //test capacity:
+           let sz_l1 = 256; //192; //256; //128; //64; //32; //16; //32; //16; //4; //128; //32 takes 131 seconds on my VM; slowest step is random creation of data.  //16 makes a total of 1.57Gb RAM used on my VM at peak.
+           let sz_l2 = 256; //4; //128; //64; //16; //32; //64; //128; //256;
+           let sz_l3 = 256; //16; //256*256;
+           let sz_l4 = 256; //16; //256*256;
+    */
+
+    /*
+            //test correctness:
+            let sz_l1 = 1;
+            let sz_l2 = 4;
+            let sz_l3 = 4;
+            let sz_l4 = 4;
+    */
+
+    // memory allocation now in allocation function bc it must be fixed there. ugly. probably just inline it now.
+    //workable/testable capacity:
+    //let sz_l1 = 108; //
+    //let sz_l1 = 106; //
+    //let sz_l1 = 99; //
+    //let sz_l1 = 80; //
+    //let sz_l1 = 72; //
+    //let sz_l1 = 64; //
+    //let sz_l1 = 56; //
+    //let sz_l1 = 48; //
+    //let sz_l1 = 32; //
+    //let sz_l1 = 24; //
+    //let sz_l1 = 16; //
+    //let sz_l1 = 4; //created data structure. 0.455 seconds filled Bag w/ random values. 88.276 seconds
+
+    //let sz_l1 = 128; // rayon goes into swap space for this size.
+    let sz_l1 = 64; //
+    let sz_l2 = 256;
+    let sz_l3 = 256;
+    let sz_l4 = 256;
+
+    let start = SystemTime::now();
+
+    //let mut v = create_largevec();
+    let mut v = vec![[0 as u8; 4]; sz_l1 * sz_l2 * sz_l3 * sz_l4];
+
+    sort_utils::end_and_print_time(start, "created data structure.");
+
+    let start = SystemTime::now();
+
+    let raw_v: WrapperOneArr = WrapperOneArr(&mut v);
+
+    // crossbeam scoped threads let rust know the lifetime of the threads is over before main.
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            // it seems reasonable on many machines to carve up the number of work items into the outer number of arrays. this is problematic on my little VM though. tuning this for your machine might be appropriate, but it alters correctness of the algorithm so proceed carefully.
+            //scope.spawn(|_| {
+            scope.spawn(move |_| {
+                //try move to get index.
+                /*
+                println!(
+                                        //NOTE: must deference? somehow touch the pointer inside the closure to make it available. disjoint capture.
+                    "\tDEBUG: move changes the pointer - same data structure: {:p}",
+                    &raw_v
+                );
+                                */
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                   /*
+                                                   println!(
+                                                       "\tDEBUG: each thread assigned work of level 2 times level 3 operations: {}.",
+                                                       sz_l2 * sz_l3
+                                                   );
+                                   */
+                //initialize the rng once only outside the loop - for speed.
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+                                                          /*
+                                                                          println!(
+                                                                              "\tDEBUG: show threads don't get the same random numbers: {}",
+                                                                              rng.gen_range(1..=u8::MAX)
+                                                                          );
+                                                          */
+
+                //randomly fill (some) of the structure.
+                for _ in 0..sz_l1 * sz_l2 * sz_l3 * sz_l4 {
+                    // random values:
+                    let a = rng.gen_range(1..=u8::MAX);
+                    let b = rng.gen_range(1..=u8::MAX);
+                    let c = rng.gen_range(1..=u8::MAX);
+                    let d = rng.gen_range(1..=u8::MAX);
+
+                    //let m = rand::thread_rng().gen_range(0..sz);
+                    //random indices:
+                    let i: usize = rng.gen_range(0..sz_l1 * sz_l2 * sz_l3 * sz_l4); //this hacky, as i am mixing bytes and indices. realize that until i work it out completely.
+
+                    //assign random values in the Bag randomly. allows overwriting. acceptable bc the focus is on the technique of creation, sort, and search using rust and these crates.
+                    //let inner_most_index = (middle * sz_l2) + inner;
+                    //let inner_most_index = (inner * sz_l2) + inmost;
+                    unsafe {
+                        (*raw_v.0)[i] = [a, b, c, d];
+                        //[a, b, outer as u8, middle as u8, inner as u8, inmost as u8];
+                        //println!("another sense of the filling - what random value am i assigning? i {}, j {}, k {}", i, j, k);
+                    }
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "filled Bag w/ random values.");
+
+    // print to get a sense of correctness only; i.e., is the intended effect apparent? yes.
+    for i in 1_000_000_000..1_000_000_010 {
+        println!("{:x} {:x} {:x} {:x} ", v[i][0], v[i][1], v[i][2], v[i][3]);
+    }
+
+    /* // sort necessary and expected expensive.
+     */
+
+    let start = SystemTime::now();
+    v.par_sort();
+    sort_utils::end_and_print_time(start, "sorted vector via rayon.");
+
+    // print to get a sense of correctness only; i.e., is the intended effect apparent? yes.
+    for i in 1_000_000_000..1_000_000_010 {
+        println!("{:x} {:x} {:x} {:x} ", v[i][0], v[i][1], v[i][2], v[i][3]);
+    }
+
+    // how many filled...
+    let start = SystemTime::now();
+
+    // give the user a sense of how many values we filled in by reporting how many nonzero values we find.
+    let mut count: u64 = 0;
+    println!("v.len {} ", v.len(),);
+    for i in 0..sz_l1 {
+        for j in 0..sz_l2 {
+            for k in 0..sz_l3 {
+                for m in 0..sz_l4 {
+                    if v[i] != [0, 0, 0, 0] {
+                        count = count + 1;
+                    }
+                }
+            }
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "inspect: how many filled.");
+    println!(
+        "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
+        count,
+        sz_l1 * sz_l2 * sz_l3 * sz_l4,
+        (count as f64 / (sz_l1 * sz_l2 * sz_l3 * 256) as f64 * 100.0) as f64
+    );
+
+    /*
+        // parallel NOTbinary searches...now they're just array lookups.
+        let start = SystemTime::now();
+        // search for a bunch.
+        //let mut sought = 0;
+        //let mut found = 0;
+        //for last in 0..sz_l3 {
+
+        let _ = crossbeam::scope(|scope| {
+            for l2 in 0..sz_l1 {
+                //
+                scope.spawn(move |_| {
+                    //println!("\tDEBUG: notice move appears to copy the pointer (different values now): {:p}", &raw_v);
+
+                    let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                    //println!("\tDEBUG: move also obtains a (sort of) thread id: {:?}.", l2);
+
+                    let mut total_sought = 0;
+                    let mut total_found = 0;
+                    let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                    for m in 0..sz_l2 {
+                        for inmid in 0..sz_l3 {
+                                                for inner in 0..256 {
+
+                            let a = rng.gen_range(1..sz_l1);
+                            let b = rng.gen_range(1..sz_l2);
+                            let c = rng.gen_range(1..sz_l3);
+                            let d = rng.gen_range(1..256);
+
+                            unsafe {
+                                                            /*
+                                                            //search by index in order:
+                                                            if 	(*raw_v.0)[l2][m][inmid][inner] {
+                                                                total_found = total_found + 1;
+                                                            }
+                                                            */
+                                                            //search by random index:
+                                                            if 	(*raw_v.0)[a][b][c][d] {
+                                                                total_found = total_found + 1;
+                                                            }
+                            }
+                            total_sought = total_sought + 1;
+                                                }
+                        }
+                    }
+
+                    println!(
+                        "\tDEBUG: thread {} - found {} out of searched {}",
+                        l2, total_found, total_sought
+                    );
+                    //sought = sought + total_sought;
+                    //found = found + total_found;
+                });
+            } //end outer loop
+        });
+
+        //println!("total: found {} out of searched {}", found, sought);
+
+        sort_utils::end_and_print_time(start, "binary searches.");
+    */
+}
+
+#[test]
+fn t_twostages_twolayer() {
+    /*
+            //test capacity:
+           let sz_l1 = 256; //192; //256; //128; //64; //32; //16; //32; //16; //4; //128; //32 takes 131 seconds on my VM; slowest step is random creation of data.  //16 makes a total of 1.57Gb RAM used on my VM at peak.
+           let sz_l2 = 256; //4; //128; //64; //16; //32; //64; //128; //256;
+           let sz_l3 = 256; //16; //256*256;
+           let sz_l4 = 256; //16; //256*256;
+    */
+
+    let sz_l1 = 256; //
+    let sz_l2 = 256;
+    let sz_l3 = 256;
+    let sz_l4 = 256;
+
+    let start = SystemTime::now();
+
+    //let mut v = vec![vec![[0 as u8; 2]; sz_l2  * sz_l3 * sz_l4]; sz_l1 ];
+    let mut v = create_twostep(sz_l1, sz_l2, sz_l3, sz_l4);
+
+    sort_utils::end_and_print_time(start, "created data structure.");
+
+    let start = SystemTime::now();
+
+    let raw_v: WrapperTwoStage = WrapperTwoStage(&mut v);
+
+    // crossbeam scoped threads let rust know the lifetime of the threads is over before main.
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                   //initialize the rng once only outside the loop - for speed.
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                //randomly fill (some) of the structure.
+                for _ in 0..sz_l2 * sz_l3 * sz_l4 {
+                    // random values:
+                    let ind: u32 = rng.gen_range(0..256 * 256 * 256);
+                    let v1 = rng.gen_range(0..u8::MAX);
+                    let v2 = rng.gen_range(0..u8::MAX);
+
+                    //assign random values in the Bag randomly. allows overwriting. acceptable bc the focus is on the technique of creation, sort, and search using rust and these crates.
+                    unsafe {
+                        //(*raw_v.0)[outer][usize::from(ind)] = [v1, v2];
+                        (*raw_v.0)[outer][usize::try_from(ind).unwrap()] = [v1, v2];
+                    }
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "filled Bag w/ random values.");
+
+    // print to get a sense of correctness only; i.e., is the intended effect apparent? yes.
+    for i in 3..5 {
+        //0..255 {
+        for j in 1_000_000..1_000_010 {
+            println!("{:x} {:x} {:x} ", i, v[i][j][0], v[i][j][1]);
+        }
+    }
+
+    /* // sort necessary and expected expensive.
+
+        let start = SystemTime::now();
+            v.par_sort();
+        sort_utils::end_and_print_time(start, "sorted vector via rayon.");
+
+
+
+            // print to get a sense of correctness only; i.e., is the intended effect apparent? yes.
+            for i in 1_000_000_000..1_000_000_010 {
+                        println!("{:x} {:x} {:x} {:x} ", v[i][0], v[i][1], v[i][2], v[i][3]);
+            }
+
+    */
+
+    // how many filled...
+    let start = SystemTime::now();
+
+    // give the user a sense of how many values we filled in by reporting how many nonzero values we find.
+    let mut count: u64 = 0;
+    println!("v.len {} ", v.len(),);
+    for i in 0..sz_l1 {
+        for j in 0..sz_l2 * sz_l3 * sz_l4 {
+            if v[i][j] != [0, 0] {
+                count = count + 1;
+            }
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "inspect: how many filled.");
+    println!(
+        "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
+        count,
+        sz_l1 * sz_l2 * sz_l3 * sz_l4,
+        (count as f64 / (sz_l1 * sz_l2 * sz_l3 * 256) as f64 * 100.0) as f64
+    );
+
+    /*
+        // parallel NOTbinary searches...now they're just array lookups.
+        let start = SystemTime::now();
+        // search for a bunch.
+        //let mut sought = 0;
+        //let mut found = 0;
+        //for last in 0..sz_l3 {
+
+        let _ = crossbeam::scope(|scope| {
+            for l2 in 0..sz_l1 {
+                //
+                scope.spawn(move |_| {
+                    //println!("\tDEBUG: notice move appears to copy the pointer (different values now): {:p}", &raw_v);
+
+                    let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                    //println!("\tDEBUG: move also obtains a (sort of) thread id: {:?}.", l2);
+
+                    let mut total_sought = 0;
+                    let mut total_found = 0;
+                    let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                    for m in 0..sz_l2 {
+                        for inmid in 0..sz_l3 {
+                                                for inner in 0..256 {
+
+                            let a = rng.gen_range(1..sz_l1);
+                            let b = rng.gen_range(1..sz_l2);
+                            let c = rng.gen_range(1..sz_l3);
+                            let d = rng.gen_range(1..256);
+
+                            unsafe {
+                                                            /*
+                                                            //search by index in order:
+                                                            if 	(*raw_v.0)[l2][m][inmid][inner] {
+                                                                total_found = total_found + 1;
+                                                            }
+                                                            */
+                                                            //search by random index:
+                                                            if 	(*raw_v.0)[a][b][c][d] {
+                                                                total_found = total_found + 1;
+                                                            }
+                            }
+                            total_sought = total_sought + 1;
+                                                }
+                        }
+                    }
+
+                    println!(
+                        "\tDEBUG: thread {} - found {} out of searched {}",
+                        l2, total_found, total_sought
+                    );
+                    //sought = sought + total_sought;
+                    //found = found + total_found;
+                });
+            } //end outer loop
+        });
+
+        //println!("total: found {} out of searched {}", found, sought);
+
+        sort_utils::end_and_print_time(start, "binary searches.");
+    */
+}
+
+#[test]
+fn t_twostages_onelayer() {
+    let sz_l1 = 256; //
+    let sz_l2 = 256;
+    let sz_l3 = 256;
+    let sz_l4 = 256;
+
+    let start = SystemTime::now();
+
+    let mut v = create_twoonelayer(sz_l1, sz_l2, sz_l3, sz_l4);
+
+    sort_utils::end_and_print_time(start, "created data structure.");
+
+    let start = SystemTime::now();
+
+    let raw_v: WrapperTwoStageOneLayer = WrapperTwoStageOneLayer(&mut v);
+
+    // crossbeam scoped threads let rust know the lifetime of the threads is over before main.
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                   //initialize the rng once only outside the loop - for speed.
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                //randomly fill (some) of the structure.
+                for not_rand in 0..sz_l2 * sz_l3 * sz_l4 {
+                    // random values:
+                    //let v1 = rng.gen_range(0..u8::MAX);
+                    let v2 = rng.gen_range(0..u8::MAX);
+                    let v3 = rng.gen_range(0..u8::MAX);
+
+                    //let ind : usize = (usize::from(v1) * 256 * 256) + (usize::from(v2) * 256) + usize::from(v3);
+
+                    //assign random values in the Bag randomly. allows overwriting. acceptable bc the focus is on the technique of creation, sort, and search using rust and these crates.
+                    unsafe {
+                        //(*raw_v.0)[outer][usize::from(ind)] = [v1, v2];
+                        //(*raw_v.0)[ind] = [v2, v3];
+                        (*raw_v.0)[not_rand] = [v2, v3];
+                    }
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "filled Bag w/ random values.");
+
+    // print to get a sense of correctness only; i.e., is the intended effect apparent? yes.
+    for i in 300_000..300_005 {
+        //0..255 {
+        println!("{:x} {:x} {:x} ", (i % 256), v[i][0], v[i][1]);
+    }
+
+    /*
+    */
+    let start = SystemTime::now();
+
+    /*
+            v.par_sort(); //too big to sort the whole thing at once on my VM.
+        sort_utils::end_and_print_time(start, "sorted vector via rayon.");
+    */
+
+    /*
+        let unit_step = 256*256*256; //256*256/16;
+
+       let _ = crossbeam::scope(|scope| {
+            for slice in v.chunks_mut(unit_step) {
+                scope.spawn(move |_| {
+                    //let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                    slice.sort();
+
+                });
+            }
+        });
+
+        sort_utils::end_and_print_time(start, "sort bags.");
+
+
+        let unit_step = 256*256*64; //256*256/16;
+
+       let _ = crossbeam::scope(|scope| {
+            for slice in v.chunks_mut(unit_step) {
+                scope.spawn(move |_| {
+                    //let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                    slice.sort();
+
+                });
+            }
+        });
+
+        sort_utils::end_and_print_time(start, "sort bags.");
+
+
+        let unit_step = 256*256*16; //256*256/16;
+
+       let _ = crossbeam::scope(|scope| {
+            for slice in v.chunks_mut(unit_step) {
+                scope.spawn(move |_| {
+                    //let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                    slice.sort();
+
+                });
+            }
+        });
+
+        sort_utils::end_and_print_time(start, "sort bags.");
+
+
+        let unit_step = 256*256*8; //256*256/16;
+
+       let _ = crossbeam::scope(|scope| {
+            for slice in v.chunks_mut(unit_step) {
+                scope.spawn(move |_| {
+                    //let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                    slice.sort();
+
+                });
+            }
+        });
+
+        sort_utils::end_and_print_time(start, "sort bags.");
+    */
+
+    v.sort();
+    sort_utils::end_and_print_time(start, "sorted vector via system sort.");
+    //v.par_sort(); //too big to sort the whole thing at once on my VM.
+    //sort_utils::end_and_print_time(start, "sorted vector via rayon.");
+
+    // print to get a sense of correctness only; i.e., is the intended effect apparent? yes.
+    for i in 300_000..300_005 {
+        //0..255 {
+        println!("{:x} {:x} {:x} ", (i % 256), v[i][0], v[i][1]);
+    }
+
+    /*
+            // print to get a sense of correctness only; i.e., is the intended effect apparent? yes.
+            for i in 1_000_000_000..1_000_000_010 {
+                        println!("{:x} {:x} {:x} {:x} ", v[i][0], v[i][1], v[i][2], v[i][3]);
+            }
+
+    */
+
+    // how many filled...
+    let start = SystemTime::now();
+
+    // give the user a sense of how many values we filled in by reporting how many nonzero values we find.
+    let mut count: u64 = 0;
+    println!("v.len {} ", v.len(),);
+    for i in 0..sz_l1 * sz_l2 * sz_l3 * sz_l4 {
+        if v[i] != [0, 0] {
+            count = count + 1;
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "inspect: how many filled.");
+    println!(
+        "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
+        count,
+        sz_l1 * sz_l2 * sz_l3 * sz_l4,
+        (count as f64 / (sz_l1 * sz_l2 * sz_l3 * 256) as f64 * 100.0) as f64
+    );
+
+    /*
+        // parallel NOTbinary searches...now they're just array lookups.
+        let start = SystemTime::now();
+        // search for a bunch.
+        //let mut sought = 0;
+        //let mut found = 0;
+        //for last in 0..sz_l3 {
+
+        let _ = crossbeam::scope(|scope| {
+            for l2 in 0..sz_l1 {
+                //
+                scope.spawn(move |_| {
+                    //println!("\tDEBUG: notice move appears to copy the pointer (different values now): {:p}", &raw_v);
+
+                    let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                    //println!("\tDEBUG: move also obtains a (sort of) thread id: {:?}.", l2);
+
+                    let mut total_sought = 0;
+                    let mut total_found = 0;
+                    let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                    for m in 0..sz_l2 {
+                        for inmid in 0..sz_l3 {
+                                                for inner in 0..256 {
+
+                            let a = rng.gen_range(1..sz_l1);
+                            let b = rng.gen_range(1..sz_l2);
+                            let c = rng.gen_range(1..sz_l3);
+                            let d = rng.gen_range(1..256);
+
+                            unsafe {
+                                                            /*
+                                                            //search by index in order:
+                                                            if 	(*raw_v.0)[l2][m][inmid][inner] {
+                                                                total_found = total_found + 1;
+                                                            }
+                                                            */
+                                                            //search by random index:
+                                                            if 	(*raw_v.0)[a][b][c][d] {
+                                                                total_found = total_found + 1;
+                                                            }
+                            }
+                            total_sought = total_sought + 1;
+                                                }
+                        }
+                    }
+
+                    println!(
+                        "\tDEBUG: thread {} - found {} out of searched {}",
+                        l2, total_found, total_sought
+                    );
+                    //sought = sought + total_sought;
+                    //found = found + total_found;
+                });
+            } //end outer loop
+        });
+
+        //println!("total: found {} out of searched {}", found, sought);
+
+        sort_utils::end_and_print_time(start, "binary searches.");
+    */
+}
+
+#[test]
+fn t_interesting_flat() {
+    let sz_l1 = 256; //
+    let sz_l2 = 256;
+    let sz_l3 = 256;
+    let sz_l4 = 256;
+
+    let start = SystemTime::now();
+
+    let mut v: Vec<[u8; 2]> = vec![[0; 2]; sz_l1 * sz_l2 * sz_l3 * sz_l4];
+
+    sort_utils::end_and_print_time(start, "created data structure.");
+
+    let start = SystemTime::now();
+
+    // give the user a sense of how many values we filled in by reporting how many nonzero values we find.
+    println!("v.len {} v[i].len {} ", v.len(), v[0].len(),);
+
+    let raw_v: WrapperOneArr2 = WrapperOneArr2(&mut v);
+
+    // crossbeam scoped threads let rust know the lifetime of the threads is over before main.
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                   //initialize the rng once only outside the loop - for speed.
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+                                                          //let rng = fastrand::Rng::new();
+
+                //let mut rng = XorShiftRng::from_entropy();
+
+                //randomly fill (some) of the structure.
+                for not_rand in 0..sz_l2 * sz_l3 * sz_l4 {
+                    // random values:
+                    let r = rng.next_u32();
+                    let r_bytes = r.to_be_bytes();
+                    let v1 = r_bytes[2];
+                    let v2 = r_bytes[3];
+                    /*
+                    let v1 = rng.gen_range(0..u8::MAX);
+                    let v2 = rng.gen_range(0..u8::MAX);
+                    */
+
+                    let index = outer * sz_l2 * sz_l3 * sz_l4 + not_rand;
+
+                    unsafe {
+                        (*raw_v.0)[index] = [v1, v2];
+                    }
+                } //end not_rand
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "filled Bag w/ random values.");
+
+    //nice but unnecessary step - gives a good sense at how much we're filling
+
+    let start = SystemTime::now();
+
+    let mut count: u64 = 0;
+    for i in 0..sz_l1 * sz_l2 * sz_l3 * sz_l4 {
+        if v[i] != [0, 0] {
+            count = count + 1;
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "inspect: how many filled.");
+    println!(
+        "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
+        count,
+        sz_l1 * sz_l2 * sz_l3 * sz_l4,
+        (count as f64 / (sz_l1 * sz_l2 * sz_l3 * sz_l4) as f64 * 100.0) as f64
+    );
+    //end inspect step.
+
+    // sort step - three natural options. par_sort, sort, and crossbeam slices.
+
+    //v.par_sort();  //can't run this on my VM. the 9.3G grows to 10.7 and eats into my swap space until the program terminates.
+    //v.sort();  //56s.
+
+    /*
+    // this is awesome to get me close, but it doesn't complete the sort.
+        let start = SystemTime::now();
+
+            let chunk_size = 256*256*256; //256*256/16;
+
+            let _ = crossbeam::scope(|scope| {
+            for slice in v.chunks_mut(chunk_size) {
+                scope.spawn(move |_| {
+                                    slice.sort();
+                });
+            }
+        });
+        sort_utils::end_and_print_time(start, "sort bags.");
+    */
+
+    let start = SystemTime::now();
+    //v.sort();  //kills VM.
+    //v.sort_unstable();  works, but takes an additionally 148s.
+    v.par_sort_unstable();
+    sort_utils::end_and_print_time(start, "complete sorted runs sort.");
+
+    // confirm the sorting. not strictly necessary each time but worthwhile if i intend to change my methodology.
+    let start = SystemTime::now();
+
+    //for i in 0..sz_l1 * sz_l2 * sz_l3 * sz_l4 {}
+    let rslt = sort_utils::is_sorted(&v);
+    if !rslt {
+        println!("\t\tthis isn't sorted....");
+    }
+
+    /* // this only confirms sorted slices.
+            let _ = crossbeam::scope(|scope| {
+            for slice in v.chunks_mut(chunk_size) {
+                scope.spawn(move |_| {
+                                let rslt = sort_utils::is_sorted_slice(slice); // still uses enough extra mem to be difficult.
+                                if !rslt {
+                                    println!("\t\tthis isn't sorted....");
+                                }
+                });
+            }
+        });
+    */
+    sort_utils::end_and_print_time(start, "confirmed sorted. ");
+
+    // parallel NOTbinary searches...now they're just array lookups.
+    let start = SystemTime::now();
+
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                let mut total_sought = 0;
+                let mut total_found = 0;
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                //let mut rng = XorShiftRng::from_entropy();
+
+                //randomly look for some elements in the structure..
+                for not_rand in 0..sz_l2 * sz_l3 * sz_l4 {
+                    // random values:
+                    let r = rng.next_u32();
+                    let r_bytes = r.to_be_bytes();
+                    let v1 = r_bytes[2];
+                    let v2 = r_bytes[3];
+
+                    let mut _answer = Ok(0); //default.
+                    unsafe {
+                        _answer = (*raw_v.0).binary_search(&[v1, v2]);
+                    }
+                    total_sought = total_sought + 1;
+                    match _answer {
+                        Ok(_index) => {
+                            total_found = total_found + 1;
+                        }
+                        Err(_some_error) => (), //println!("not found. index where should be: {}", _some_error),
+                    }
+                } //end for not_rand
+
+                /*
+                println!(
+                    "\tDEBUG: thread {} - found {} out of searched {}",
+                    outer, total_found, total_sought
+                );
+                                */
+            });
+        } //end outer loop
+    });
+
+    sort_utils::end_and_print_time(start, "binary searches.");
+}
+
+#[test]
+fn t_interesting_one_level() {
+    let sz_l1 = 256; //
+    let sz_l2 = 256;
+    let sz_l3 = 256;
+    let sz_l4 = 256;
+
+    let start = SystemTime::now();
+
+    //let mut v = create_2566(sz_l1, sz_l2, sz_l3, sz_l4);
+    //let mut v = create_2565(sz_l1, sz_l2, sz_l3, sz_l4);
+    //let mut v = create_2564(sz_l1, sz_l2, sz_l3, sz_l4);
+    //let mut v = create_2563(sz_l1, sz_l2, sz_l3, sz_l4);  //on the cusp of too big...
+    let mut v = create_2562(sz_l1, sz_l2, sz_l3, sz_l4);
+
+    sort_utils::end_and_print_time(start, "created data structure.");
+
+    let start = SystemTime::now();
+
+    // give the user a sense of how many values we filled in by reporting how many nonzero values we find.
+    let mut count: u64 = 0;
+    println!("v.len {} v[i].len {} ", v.len(), v[0].len(),);
+
+    let raw_v: WrapperBag2562 = WrapperBag2562(&mut v);
+
+    // crossbeam scoped threads let rust know the lifetime of the threads is over before main.
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                   //initialize the rng once only outside the loop - for speed.
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+                                                          //let rng = fastrand::Rng::new();
+
+                //let mut rng = XorShiftRng::from_entropy();
+                //rng.next_u64();
+
+                //randomly fill (some) of the structure.
+                for not_rand in 0..sz_l2 * sz_l3 * sz_l4 {
+                    // random values:
+                    // very effective
+                    let r = rng.next_u32();
+                    let r_bytes = r.to_be_bytes();
+                    let v1 = r_bytes[0];
+                    let v2 = r_bytes[1];
+                    let v3 = r_bytes[2];
+                    /* // not faster and NOT a better distribution. that doesn't seem right but might be due to having to use 251 as the largest prime less than 256. using 255 doesn't have the effect i expect either. might want to revisit.
+                    let v1 = modular_hash((outer * not_rand).to_be_bytes());
+                    let v2 = modular_hash((outer + not_rand).to_be_bytes());
+                    let v3 = modular_hash((outer - not_rand).to_be_bytes());
+                    */
+                    /*
+                                                let v1 = rng.gen_range(0..u8::MAX);
+                    let v2 = rng.gen_range(0..u8::MAX);
+                    let v3 = rng.gen_range(0..u8::MAX);  */
+                    /*
+                    let r = rng.next_u32();
+                    let r_bytes = r.to_be_bytes();
+                    let v1 = r_bytes[0];
+                    let v2 = r_bytes[1];
+                    let v3 = r_bytes[2];
+                    */
+                    //let v1 = fastrand::u8(..);
+                    //let v2 = fastrand::u8(..);
+                    //let v3 = fastrand::u8(..);
+                    //let ind : usize = (usize::from(v1) * 256 * 256) + (usize::from(v2) * 256) + usize::from(v3);
+
+                    //assign random values in the Bag randomly. allows overwriting. acceptable bc the focus is on the technique of creation, sort, and search using rust and these crates.
+                    unsafe {
+                        //(*raw_v.0)[outer][usize::from(ind)] = [v1, v2];
+                        //(*raw_v.0)[ind] = [v2, v3];
+                        (*raw_v.0)[usize::from(v1)][not_rand] = [v2, v3];
+                    }
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "filled Bag w/ random values.");
+
+    /*
+     //nice but unnecessary step - gives a good sense at how much we're filling
+
+        let start = SystemTime::now();
+        for i in 0..sz_l1 {
+                for j in 0..sz_l2 * sz_l3 * sz_l4 {
+                        if v[i][j] != [0, 0] {
+                            count = count + 1;
+              }
+                }
+        }
+
+        sort_utils::end_and_print_time(start, "inspect: how many filled.");
+        println!(
+            "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
+            count,
+            sz_l1 * sz_l2 * sz_l3 * sz_l4,
+            (count as f64 / (sz_l1 * sz_l2 * sz_l3 * sz_l4) as f64 * 100.0) as f64
+        );
+    */
+ //end inspect step.
+
+    let start = SystemTime::now();
+
+    let _ = crossbeam::scope(|scope| {
+        //for outer in 0..sz_l1 {
+        let inner_sz = 64;
+        for outer in 0..4 {
+            //four hyper threads on my vm.
+            // create a thread for the outer number of elements.
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                for inner in 0..inner_sz {
+                    let index = outer * inner_sz + inner;
+                    unsafe {
+                        //println!("(*raw_v.0)[outer] {}", (*raw_v.0)[outer].len());
+                        //(*raw_v.0)[outer].par_sort(); //this combination appears to be a ridiculously fast sort. is it possible? crashes my VM.
+                        //(*raw_v.0)[index].par_sort(); //this combination appears to be a ridiculously fast sort. is it possible? crashes my VM.
+                        (*raw_v.0)[index].sort(); // still uses enough extra mem to be difficult.
+                    }
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "sort bags.");
+
+    /* // confirm the sorting. not strictly necessary each time but worthwhile if i intend to change my methodology.
+        let start = SystemTime::now();
+            //v.par_sort(); //too big to sort the whole thing at once on my VM.
+
+        let _ = crossbeam::scope(|scope| {
+            //for outer in 0..sz_l1 {
+                    let inner_sz = 64;
+            for outer in 0..4 {
+                // create a thread for the outer number of elements.
+                scope.spawn(move |_| {
+                    let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                                    for inner in 0..inner_sz {
+                                            let index = outer * inner_sz + inner;
+                        unsafe {
+                                                println!("attempting to sort index {}", index);
+                                                let rslt = sort_utils::is_sorted(&(*raw_v.0)[index]); // still uses enough extra mem to be difficult.
+                                                if !rslt {
+                                                    println!("\t\tthis isn't sorted....");
+                                                }
+                                            }
+                                    }
+                });
+            }
+        });
+
+
+
+        sort_utils::end_and_print_time(start, "confirmed sorted. ");
+
+    */
+
+    /*
+     // how many filled...
+        let start = SystemTime::now();
+
+        // give the user a sense of how many values we filled in by reporting how many nonzero values we find.
+        let mut count : u64 = 0;
+        println!(
+            "v.len {} ",
+            v.len(),
+        );
+        for i in 0..sz_l1 * sz_l2 * sz_l3 * sz_l4 {
+                        if v[i] != [0, 0] {
+                            count = count + 1;
+              }
+        }
+
+        sort_utils::end_and_print_time(start, "inspect: how many filled.");
+        println!(
+            "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
+            count,
+            sz_l1 * sz_l2 * sz_l3 * sz_l4,
+            (count as f64 / (sz_l1 * sz_l2 * sz_l3 * 256) as f64 * 100.0) as f64
+        );
+
+    */
+
+    // parallel NOTbinary searches...now they're just array lookups.
+    let start = SystemTime::now();
+
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            //
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                let mut total_sought = 0;
+                let mut total_found = 0;
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                //let mut rng = XorShiftRng::from_entropy();
+
+                //randomly look for some elements in the structure..
+                for not_rand in 0..sz_l2 * sz_l3 * sz_l4 {
+                    // random values:
+                    let r = rng.next_u32();
+                    let r_bytes = r.to_be_bytes();
+                    let v1 = r_bytes[0];
+                    let v2 = r_bytes[1];
+                    let v3 = r_bytes[2];
+
+                    let mut _answer = Ok(0); //default.
+                    unsafe {
+                        _answer = (*raw_v.0)[usize::from(v1)].binary_search(&[v2, v3]);
+                    }
+                    total_sought = total_sought + 1;
+                    match _answer {
+                        Ok(_index) => {
+                            total_found = total_found + 1;
+                        }
+                        Err(_some_error) => (), //println!("not found. index where should be: {}", _some_error),
+                    }
+                } //end for not_rand
+
+                println!(
+                    "\tDEBUG: thread {} - found {} out of searched {}",
+                    outer, total_found, total_sought
+                );
+            });
+        } //end outer loop
+    });
+
+    sort_utils::end_and_print_time(start, "binary searches.");
+}
+
+#[test]
+fn t_modular_hash() {
+    for i in 10_000..10_010 {
+        let x = modular_hash((i as u64).to_be_bytes());
+        println!("x is: {}", x);
+    }
+}
+
+#[test]
+fn t_interesting_two_levels() {
+    let sz_l1 = 256; //
+    let sz_l2 = 256;
+    let sz_l3 = 256;
+    let sz_l4 = 256;
+
+    let start = SystemTime::now();
+
+    let mut v = create_25622(sz_l1, sz_l2, sz_l3, sz_l4);
+
+    sort_utils::end_and_print_time(start, "created data structure.");
+
+    let start = SystemTime::now();
+
+    // give the user a sense of how many values we filled in by reporting how many nonzero values we find.
+    let mut count: u64 = 0;
+    println!(
+        "v.len {} v[i].len {} v[i][i].len {} ",
+        v.len(),
+        v[0].len(),
+        v[0][0].len(),
+    );
+
+    let raw_v: WrapperBag25622 = WrapperBag25622(&mut v);
+
+    // crossbeam scoped threads let rust know the lifetime of the threads is over before main.
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+                                   //initialize the rng once only outside the loop - for speed.
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+                                                          //let rng = fastrand::Rng::new();
+                                                          //let mut rng = XorShiftRng::from_entropy();
+
+                //randomly fill (some) of the structure.
+                for inner in 0..sz_l2 {
+                    for not_rand in 0..sz_l3 * sz_l4 {
+                        // random values:
+                        // very effective
+                        let r = rng.next_u32();
+                        let r_bytes = r.to_be_bytes();
+                        let v1 = r_bytes[0];
+                        let v2 = r_bytes[1];
+                        let v3 = r_bytes[2];
+                        let v4 = r_bytes[3];
+
+                        let index = inner * sz_l2 + not_rand;
+                        //assign random values in the Bag randomly. allows overwriting. acceptable bc the focus is on the technique of creation, sort, and search using rust and these crates.
+                        unsafe {
+                            (*raw_v.0)[usize::from(v1)][usize::from(v2)][not_rand] = [v3, v4];
+                        }
+                    } //end not_rand
+                } //end inner
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "filled Bag w/ random values.");
+
+    //nice but unnecessary step - gives a good sense at how much we're filling
+
+    let start = SystemTime::now();
+    for i in 0..sz_l1 {
+        for j in 0..sz_l2 {
+            for k in 0..sz_l3 * sz_l4 {
+                if v[i][j][k] != [0, 0] {
+                    count = count + 1;
+                }
+            }
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "inspect: how many filled.");
+    println!(
+        "\tDEBUG: filled in {} values randomly out of {} possible. percent: {}",
+        count,
+        sz_l1 * sz_l2 * sz_l3 * sz_l4,
+        (count as f64 / (sz_l1 * sz_l2 * sz_l3 * sz_l4) as f64 * 100.0) as f64
+    );
+    //end inspect step.
+
+    let start = SystemTime::now();
+
+    let _ = crossbeam::scope(|scope| {
+        //for outer in 0..sz_l1 {
+        let inner_sz = 64;
+        for outer in 0..4 {
+            //four hyper threads on my vm.
+            // create a thread for the outer number of elements.
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                for inner in 0..inner_sz {
+                    let index = outer * inner_sz + inner;
+
+                    for each in 0..sz_l2 {
+                        //
+                        unsafe {
+                            //println!("(*raw_v.0)[outer] {}", (*raw_v.0)[outer].len());
+                            //(*raw_v.0)[outer].par_sort(); //this combination appears to be a ridiculously fast sort. is it possible? no. see i was only sorting four of the arrays in outer. at first, crashes my VM.
+                            //(*raw_v.0)[index].par_sort(); //
+                            (*raw_v.0)[index][each].sort(); // still uses enough extra mem to be difficult.
+                        }
+                    }
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "sort bags.");
+
+    // confirm the sorting. not strictly necessary each time but worthwhile if i intend to change my methodology.
+    let start = SystemTime::now();
+    //v.par_sort(); //too big to sort the whole thing at once on my VM.
+
+    let _ = crossbeam::scope(|scope| {
+        //for outer in 0..sz_l1 {
+        let inner_sz = 64;
+        for outer in 0..4 {
+            // create a thread for the outer number of elements.
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                for inner in 0..inner_sz {
+                    let index = outer * inner_sz + inner;
+                    for each in 0..sz_l2 {
+                        //
+                        unsafe {
+                            //println!("confirming each {}", each);
+                            let rslt = sort_utils::is_sorted(&(*raw_v.0)[index][each]); // still uses enough extra mem to be difficult.
+                            if !rslt {
+                                println!("\t\tthis isn't sorted....");
+                            }
+                        } // end unsafe
+                    } //end each
+                }
+            });
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "confirmed sorted. ");
+
+    // parallel NOTbinary searches...now they're just array lookups.
+    let start = SystemTime::now();
+
+    let _ = crossbeam::scope(|scope| {
+        for outer in 0..sz_l1 {
+            //
+            scope.spawn(move |_| {
+                let raw_v = raw_v; //https://users.rust-lang.org/t/unsafe-raw-pointer-in-std-thread/97705 . disjoint capture.
+
+                let mut total_sought = 0;
+                let mut total_found = 0;
+                let mut rng = ChaCha8Rng::from_entropy(); //works
+
+                //let mut rng = XorShiftRng::from_entropy();
+
+                //randomly look for some elements in the structure..
+                for not_rand in 0..sz_l2 * sz_l3 * sz_l4 {
+                    // random values:
+                    let r = rng.next_u32();
+                    let r_bytes = r.to_be_bytes();
+                    let v1 = r_bytes[0];
+                    let v2 = r_bytes[1];
+                    let v3 = r_bytes[2];
+                    let v4 = r_bytes[3];
+
+                    let mut _answer = Ok(0); //default.
+                    unsafe {
+                        _answer =
+                            (*raw_v.0)[usize::from(v1)][usize::from(v2)].binary_search(&[v3, v4]);
+                    }
+                    total_sought = total_sought + 1;
+                    match _answer {
+                        Ok(_index) => {
+                            total_found = total_found + 1;
+                        }
+                        Err(_some_error) => (), //println!("not found. index where should be: {}", _some_error),
+                    }
+                } //end for not_rand
+
+                println!(
+                    "\tDEBUG: thread {} - found {} out of searched {}",
+                    outer, total_found, total_sought
+                );
+            });
+        } //end outer loop
+    });
 
     sort_utils::end_and_print_time(start, "binary searches.");
 }
