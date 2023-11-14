@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 use std::time::SystemTime;
 //use std::cell::RefCell;
 use std::thread;
+use std::time::Duration;
 
 #[derive(Clone, Copy)]
 struct WrapperTwoStageOneLayer(*mut Vec<[u8; 2]>);
@@ -19,6 +20,12 @@ struct WrapperTwoStage(*mut Vec<Vec<[u8; 2]>>);
 
 unsafe impl Send for WrapperTwoStage {}
 unsafe impl Sync for WrapperTwoStage {}
+
+#[derive(Clone, Copy)]
+struct WrapperOneArr3(*mut Vec<[u8; 3]>);
+
+unsafe impl Send for WrapperOneArr3 {}
+unsafe impl Sync for WrapperOneArr3 {}
 
 #[derive(Clone, Copy)]
 struct WrapperOneArr2(*mut Vec<[u8; 2]>);
@@ -306,7 +313,6 @@ fn create_vecvecvecarr() -> Vec<Vec<Vec<[u8; 2]>>> {
     v[3][2][1] = [0xf, 0xa];
     v
 }
-
 fn create_twostep(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec<Vec<[u8; 2]>> {
     let mut v = vec![vec![[0 as u8; 2]; sz_l2 * sz_l3 * sz_l4]; sz_l1];
     v
@@ -314,6 +320,16 @@ fn create_twostep(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec
 
 fn create_twoonelayer(sz_l1: usize, sz_l2: usize, sz_l3: usize, sz_l4: usize) -> Vec<[u8; 2]> {
     let mut v = vec![[0 as u8; 2]; sz_l2 * sz_l3 * sz_l4 * sz_l1];
+    v
+}
+
+fn create_flat_two(sz: usize) -> Vec<[u8; 2]> {
+    let mut v = vec![[0 as u8; 2]; sz];
+    v
+}
+
+fn create_flat_three(sz: usize) -> Vec<[u8; 3]> {
+    let mut v = vec![[0 as u8; 3]; sz];
     v
 }
 
@@ -2491,7 +2507,7 @@ fn t_twostages_onelayer() {
     }
 
     /*
-    */
+     */
     let start = SystemTime::now();
 
     /*
@@ -2936,7 +2952,7 @@ fn t_interesting_one_level() {
             (count as f64 / (sz_l1 * sz_l2 * sz_l3 * sz_l4) as f64 * 100.0) as f64
         );
     */
- //end inspect step.
+    //end inspect step.
 
     let start = SystemTime::now();
 
@@ -3270,4 +3286,316 @@ fn t_interesting_two_levels() {
     });
 
     sort_utils::end_and_print_time(start, "binary searches.");
+}
+
+#[test]
+fn t_new_scheme() {
+    let x = new_scheme();
+    assert!(x);
+}
+
+fn new_scheme() -> bool {
+    let step = 256;
+
+    let v = create_base(step);
+
+    //spot_check(&v, 2_000_000_000, 15);  //full structure
+    spot_check(&v, 15_000_000, 15); //smaller structure
+
+    for i in 0..=127 {
+        let vc = &v;
+        thread::scope(|s| {
+            for j in 0..2 {
+                s.spawn(move || create_comparison(vc, step, i + (j * 128)));
+            }
+        });
+
+        /*
+            let vclone = &v.clone();
+            let stepclone = step.clone();
+            let iclone = i.clone();
+        let handle = thread::spawn(move || {
+                    create_comparison(vclone, stepclone, iclone)
+        });
+
+            create_comparison(&v, step, i+128);
+
+        handle.join().unwrap();
+        */
+        /*
+        thread::scope(|s| {
+            s.spawn( || create_comparison(&v, step, i) );
+        });
+        thread::scope(|s| {
+            s.spawn( || create_comparison(&v, step, i+128) );
+        });
+        */
+
+        //create_comparison(&v, step, i+128);
+    }
+    /*
+        let mut w = vec![];
+    let handle = thread::spawn( || {
+            w = create_comparison(step, i);
+    });
+        */
+    /*
+        thread::scope(|s| {
+                let handle1 = s.spawn(|_| w = create_comparison(step, i) );
+
+                let res = handle1.join();
+                assert!(res.is_ok());
+
+        }).unwrap();
+    */
+
+    /*
+            let w = create_comparison(step, i);
+            let x = create_comparison(step, i+128);
+
+            //handle.join().unwrap();
+            println!("created sorted vectors for nums: {} and {}", i, i+128);
+            let ans_left = merge_search(&v, &w);
+            let ans_right = merge_search(&v, &x);
+            if let Some(left) = &ans_left {
+                //println!("left found {:x?}", *left);
+                println!("left found {:?}", left.len());
+                for j in &*left {
+                    if j != &[0x0, 0x0, 0x0] {
+                        println!("left found {:x?}", j);
+                    }
+                    if j == &[0xd, 0xa, 0xd] {
+                        return true;
+                    }
+                }
+            }
+            if let Some(right) = &ans_left {
+                //println!("right found {:x?}", *right);
+                println!("right found {:?}", right.len());
+                for j in &*right {
+                    if j != &[0x0, 0x0, 0x0] {
+                        println!("right found {:x?}", j);
+                    }
+                }
+
+            }
+
+        }
+
+    */
+
+    //create_two_at_time();
+
+    //assert_eq!(v.len(), 256_usize.pow(4)); //full
+    assert_eq!(v.len(), 256_usize.pow(3)); //small
+
+    false
+}
+
+//fn merge_search(v : &Vec<[u8; 3]>, w : &Vec<[u8; 3]>) -> Option<Vec<[u8; 3]>> {
+fn merge_search(v: &Vec<[u8; 3]>, w: &Vec<[u8; 3]>) {
+    let start = SystemTime::now();
+    let mut i = 0;
+    let mut j = 0;
+    let v_last = v.len() - 1;
+    let w_last = w.len() - 1;
+    let mut answer_bag = Vec::new();
+    //assumption: v.len and w.len are the same.
+    let mut found = false;
+    for k in 0..v.len() + w.len() {
+        //println!("doing it...");
+        if i > w_last {
+            i = i + 1;
+        } else if j > v_last {
+            j = j + 1;
+        } else if w[j] < v[i] {
+            j = j + 1;
+        } else if v[i] < w[j] {
+            i = i + 1;
+        }
+        //else if v[i] == w[j] { return Some(v[i]); }
+        else if v[i] == w[j] {
+            found = true;
+            answer_bag.push(v[i]);
+            i = i + 1;
+            j = j + 1;
+        } else {
+            println!("don't expect this can happen....");
+        }
+    }
+
+    if !found {
+        println!("nothing found....");
+    } else {
+        //found
+        for answer in answer_bag {
+            if answer != [0x0, 0x0, 0x0] {
+                println!("found {:x?}", answer);
+                if answer == [0xd, 0xa, 0xd] {
+                    println!(" found my dad: {:x?}", answer);
+                }
+            }
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "merge search...");
+    /*
+        if !found {
+            println!("nothing found....");
+            return None;
+        }
+        Some(answer_bag)
+    */
+}
+
+fn spot_check(v: &Vec<[u8; 3]>, offset: usize, amount: usize) {
+    //fn spot_check(v : &Vec<[u8; 2]>, offset: usize, amount: usize) {
+
+    let start = SystemTime::now();
+    //let offset = 1_000_000_000; //1_000_000; //100_000; //10_000;
+    for i in offset..=offset + amount {
+        println!("{:x?}", v[i]);
+    }
+
+    sort_utils::end_and_print_time(start, "get sense of creation...");
+}
+
+//fn create_comparison(step: usize, outside: usize) -> Vec<[u8; 3]>  {
+fn create_comparison(base: &Vec<[u8; 3]>, step: usize, outside: usize) {
+    let start = SystemTime::now();
+    //thread::sleep(Duration::from_millis(4000));
+
+    //let mut v =  create_flat_two(step.pow(4));  //full structure
+    //let mut v =  create_flat_two(step.pow(3)); //smaller for speed
+    let mut v = create_flat_three(step.pow(3)); //smaller for speed
+
+    //let mut raw_v : WrapperOneArr2 = WrapperOneArr2(&mut v);
+    let mut raw_v: WrapperOneArr3 = WrapperOneArr3(&mut v);
+
+    let _ = crossbeam::scope(|scope| {
+        for i in 0..=255 {
+            scope.spawn(move |_| {
+                raw_v = raw_v; //disjoint capture
+                let mut rng = ChaCha8Rng::from_entropy();
+                for j in 0..=255 {
+                    for k in 0..=255 {
+                        //for l in 0..=255 { //shrink on my VM.
+                        //let index = (i * 2_usize.pow(8*3)) + (j * 2_usize.pow(8*2)) + (k * 2_usize.pow(8)) + l;
+                        let index = (i * 2_usize.pow(8 * 2)) + (j * 2_usize.pow(8)) + k;
+                        let mut r = rng.next_u32();
+                        r = r + outside as u32 % u32::MAX;
+                        //let r_bytes = r.to_be_bytes();
+                        let r_bytes = r.to_le_bytes();
+                        let v1 = r_bytes[3];
+                        let v2 = r_bytes[2];
+                        let v3 = r_bytes[1];
+                        unsafe {
+                            (*raw_v.0)[index] = [v1, v2, v3];
+                        }
+                        //} //end l
+                    } //end k
+                } //end j
+            }); //end spawn
+        } // end i
+    }); //end crossbeam
+
+    sort_utils::end_and_print_time(start, "filled values in comparsion table...");
+
+    sort_separately(&mut v);
+
+    //v
+    merge_search(&base, &v);
+}
+
+//fn create_base(step: usize) -> Vec<[u8; 2]>  {
+fn create_base(step: usize) -> Vec<[u8; 3]> {
+    let start = SystemTime::now();
+
+    //let mut v =  create_flat_two(step.pow(4));  //full structure
+    //let mut v =  create_flat_two(step.pow(3)); //smaller for speed
+    let mut v = create_flat_three(step.pow(3)); //smaller for speed
+
+    //let mut raw_v : WrapperOneArr2 = WrapperOneArr2(&mut v);
+    let mut raw_v: WrapperOneArr3 = WrapperOneArr3(&mut v);
+
+    let _ = crossbeam::scope(|scope| {
+        for i in 0..=255 {
+            scope.spawn(move |_| {
+                raw_v = raw_v; //disjoint capture
+                let mut rng = ChaCha8Rng::from_entropy();
+                for j in 0..=255 {
+                    for k in 0..=255 {
+                        //for l in 0..=255 { //shrink on my VM.
+                        //let index = (i * 2_usize.pow(8*3)) + (j * 2_usize.pow(8*2)) + (k * 2_usize.pow(8)) + l;
+                        let index = (i * 2_usize.pow(8 * 2)) + (j * 2_usize.pow(8)) + k;
+                        /*
+                        let r = rng.next_u32();
+                        let r_bytes = r.to_be_bytes();
+                        let v1 = r_bytes[0];
+                        let v2 = r_bytes[1];
+                        let v3 = r_bytes[2];
+                        */
+                        unsafe {
+                            //(*raw_v.0)[index] = [v1, v2, v3];
+                            //(*raw_v.0)[index] = [i as u8, j as u8, k as u8];
+                            (*raw_v.0)[index] = [0, 0, 0];
+                            //(*raw_v.0)[index] = [0xff, 0xff, 0xff];
+                        }
+                        //} //end l
+                    } //end k
+                } //end j
+            }); //end spawn
+        } // end i
+    }); //end crossbeam
+
+    unsafe {
+        (*raw_v.0)[16_000_000] = [0xd, 0xa, 0xd];
+    }
+
+    sort_utils::end_and_print_time(start, "filled values in base table...");
+
+    sort_separately(&mut v);
+
+    v
+}
+
+//fn sort_separately(v: &mut Vec<[u8; 2]>) {
+fn sort_separately(v: &mut Vec<[u8; 3]>) {
+    let start = SystemTime::now();
+
+    v.par_sort_unstable();
+
+    sort_utils::end_and_print_time(start, "sorted...");
+}
+
+#[test]
+fn t_merge_search_small() {
+    let mut v1 = vec![
+        [0x1, 0x1, 0x1],
+        [0x15, 0x32, 0x88],
+        [0x6, 0x4, 0xab],
+        [0x12, 0xaf, 0x4c],
+        [0x9, 0x34, 0xb3],
+        [0x44, 0x45, 0x45],
+        [0xff, 0xff, 0xff],
+    ];
+    let mut v2 = vec![
+        [0x2d, 0x2f, 0xd1],
+        [0x63, 0x14, 0xab],
+        [0xd9, 0xe2, 0x1c],
+        [0x91, 0x82, 0x22],
+        [0x68, 0x4f, 0xcd],
+        [0xff, 0xff, 0xff],
+        [0x1, 0x1, 0x1],
+    ];
+
+    v1.sort();
+    v2.sort();
+
+    /*
+        let m = merge_search(&v1, &v2);
+        if let Some(left) = &m {
+                println!("left found {:x?}", *left);
+        }
+    */
 }
