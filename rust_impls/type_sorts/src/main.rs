@@ -22,6 +22,12 @@ unsafe impl Send for WrapperTwoStage {}
 unsafe impl Sync for WrapperTwoStage {}
 
 #[derive(Clone, Copy)]
+struct WrapperOneArr12(*mut Vec<[u8; 12]>);
+
+unsafe impl Send for WrapperOneArr12 {}
+unsafe impl Sync for WrapperOneArr12 {}
+
+#[derive(Clone, Copy)]
 struct WrapperOneArr3(*mut Vec<[u8; 3]>);
 
 unsafe impl Send for WrapperOneArr3 {}
@@ -330,6 +336,11 @@ fn create_flat_two(sz: usize) -> Vec<[u8; 2]> {
 
 fn create_flat_three(sz: usize) -> Vec<[u8; 3]> {
     let mut v = vec![[0 as u8; 3]; sz];
+    v
+}
+
+fn create_flat_twelve(sz: usize) -> Vec<[u8; 12]> {
+    let mut v = vec![[0 as u8; 12]; sz];
     v
 }
 
@@ -3514,6 +3525,7 @@ fn create_base(step: usize) -> Vec<[u8; 3]> {
     //let mut v =  create_flat_two(step.pow(4));  //full structure
     //let mut v =  create_flat_two(step.pow(3)); //smaller for speed
     let mut v = create_flat_three(step.pow(3)); //smaller for speed
+                                                //let mut v =  create_flat_three(step.pow(4));  //full structure
 
     //let mut raw_v : WrapperOneArr2 = WrapperOneArr2(&mut v);
     let mut raw_v: WrapperOneArr3 = WrapperOneArr3(&mut v);
@@ -3528,17 +3540,17 @@ fn create_base(step: usize) -> Vec<[u8; 3]> {
                         //for l in 0..=255 { //shrink on my VM.
                         //let index = (i * 2_usize.pow(8*3)) + (j * 2_usize.pow(8*2)) + (k * 2_usize.pow(8)) + l;
                         let index = (i * 2_usize.pow(8 * 2)) + (j * 2_usize.pow(8)) + k;
-                        /*
+                        ///*
                         let r = rng.next_u32();
                         let r_bytes = r.to_be_bytes();
                         let v1 = r_bytes[0];
                         let v2 = r_bytes[1];
                         let v3 = r_bytes[2];
-                        */
+                        //*/
                         unsafe {
-                            //(*raw_v.0)[index] = [v1, v2, v3];
+                            (*raw_v.0)[index] = [v1, v2, v3];
                             //(*raw_v.0)[index] = [i as u8, j as u8, k as u8];
-                            (*raw_v.0)[index] = [0, 0, 0];
+                            //(*raw_v.0)[index] = [0, 0, 0];
                             //(*raw_v.0)[index] = [0xff, 0xff, 0xff];
                         }
                         //} //end l
@@ -3548,9 +3560,11 @@ fn create_base(step: usize) -> Vec<[u8; 3]> {
         } // end i
     }); //end crossbeam
 
+    /*
     unsafe {
         (*raw_v.0)[16_000_000] = [0xd, 0xa, 0xd];
     }
+        */
 
     sort_utils::end_and_print_time(start, "filled values in base table...");
 
@@ -3559,6 +3573,13 @@ fn create_base(step: usize) -> Vec<[u8; 3]> {
     v
 }
 
+fn sort_separately12(v: &mut Vec<[u8; 12]>) {
+    let start = SystemTime::now();
+
+    v.par_sort_unstable();
+
+    sort_utils::end_and_print_time(start, "sorted...");
+}
 //fn sort_separately(v: &mut Vec<[u8; 2]>) {
 fn sort_separately(v: &mut Vec<[u8; 3]>) {
     let start = SystemTime::now();
@@ -3597,5 +3618,184 @@ fn t_merge_search_small() {
         if let Some(left) = &m {
                 println!("left found {:x?}", *left);
         }
+    */
+}
+
+fn create_base12(step: usize) -> Vec<[u8; 12]> {
+    let start = SystemTime::now();
+
+    //let mut v =  create_flat_two(step.pow(4));  //full structure
+    //let mut v =  create_flat_two(step.pow(3)); //smaller for speed
+    //let mut v = create_flat_three(step.pow(3)); //smaller for speed
+    //let mut v = create_flat_twelve(step.pow(3)); //smaller for speed
+    let mut v = create_flat_twelve(step.pow(4)); //smaller for speed
+                                                 //let mut v =  create_flat_three(step.pow(4));  //full structure
+
+    //let mut raw_v : WrapperOneArr2 = WrapperOneArr2(&mut v);
+    //let mut raw_v: WrapperOneArr3 = WrapperOneArr3(&mut v);
+    let mut raw_v: WrapperOneArr12 = WrapperOneArr12(&mut v);
+
+    let _ = crossbeam::scope(|scope| {
+        for i in 0..step {
+            scope.spawn(move |_| {
+                raw_v = raw_v; //disjoint capture
+                let mut rng = ChaCha8Rng::from_entropy();
+                for j in 0..step {
+                    for k in 0..step {
+                        for l in 0..step {
+                            //shrink on my VM.
+                            //let index = (i * 2_usize.pow(8*3)) + (j * 2_usize.pow(8*2)) + (k * 2_usize.pow(8)) + l;
+                            let index = (i * step.pow(3)) + (j * step.pow(2)) + (k * step) + l;
+                            //let index = (i * 2_usize.pow(8 * 2)) + (j * 2_usize.pow(8)) + k;
+                            ///*
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v1 = r_bytes[0];
+                            let v2 = r_bytes[1];
+                            let v3 = r_bytes[2];
+                            let v4 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v5 = r_bytes[0];
+                            let v6 = r_bytes[1];
+                            let v7 = r_bytes[2];
+                            let v8 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v9 = r_bytes[0];
+                            let v10 = r_bytes[1];
+                            let v11 = r_bytes[2];
+                            let v12 = r_bytes[3];
+
+                            //*/
+                            unsafe {
+                                //(*raw_v.0)[index] = [v1, v2, v3];
+                                (*raw_v.0)[index] =
+                                    [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12];
+                                //(*raw_v.0)[index] = [i as u8, j as u8, k as u8];
+                                //(*raw_v.0)[index] = [0, 0, 0];
+                                //(*raw_v.0)[index] = [0xff, 0xff, 0xff];
+                            }
+                        } //end l
+                    } //end k
+                } //end j
+            }); //end spawn
+        } // end i
+    }); //end crossbeam
+
+    /*
+    unsafe {
+        (*raw_v.0)[16_000_000] = [0xd, 0xa, 0xd];
+    }
+        */
+
+    sort_utils::end_and_print_time(start, "filled values in base table...");
+
+    sort_separately12(&mut v);
+
+    v
+}
+
+fn merge_search12_t(v: &Vec<[u8; 12]>, w: &Vec<[u8; 12]>) {
+    let start = SystemTime::now();
+
+    //let chunks = std::cmp::min(len, threads);
+    //realize w is a power of 2, so chunks should be a smaller value that divides w.len. experiment:
+    let _ = crossbeam::scope(|scope| {
+        for slice in w.chunks(2_usize.pow(26)) {
+            scope.spawn(|_| merge_search12(&v, slice));
+        }
+    });
+
+    sort_utils::end_and_print_time(start, "merge search threaded...");
+}
+
+// fine single threaded impl...but this is serial....
+//fn merge_search12(v: &Vec<[u8; 12]>, w: &Vec<[u8; 12]>) {
+fn merge_search12(v: &Vec<[u8; 12]>, w: &[[u8; 12]]) {
+    let start = SystemTime::now();
+    let mut i = 0;
+    let mut j = 0;
+    let v_last = v.len() - 1;
+    let w_last = w.len() - 1;
+    let mut answer_bag = Vec::new();
+    //assumption: v.len and w.len are the same.
+    let mut found = false;
+    for k in 0..v.len() + w.len() {
+        //println!("doing it...");
+        //if i >= w_last {
+        //if i >= v_last {
+        if j >= w_last {
+            //put j first bc it's shorter and should finish quicker.
+            //i = i + 1;
+            //continue;
+            break;
+        //} else if j >= v_last {
+        //} else if j >= w_last {
+        } else if i >= v_last {
+            //j = j + 1;
+            //continue;
+            break;
+        /*  //nothing found...unlikely anyway....
+        } else if w[j] < v[i] {
+            j = j + 1;
+        } else if v[i] < w[j] {
+            i = i + 1;
+        }
+        else if v[i] == w[j] {
+                */
+        // shorten the values so i find something but not too much....
+        } else if &w[j][0..7] < &v[i][0..7] {
+            j = j + 1;
+            continue;
+        } else if &v[i][0..7] < &w[j][0..7] {
+            i = i + 1;
+            continue;
+        } else if &v[i][0..7] == &w[j][0..7] {
+            found = true;
+            answer_bag.push(v[i]);
+            i = i + 1;
+            j = j + 1;
+        } else {
+            println!("don't expect this can happen....");
+        }
+    }
+
+    if !found {
+        println!("nothing found....");
+    } else {
+        //found
+        for answer in answer_bag {
+            println!("found {:x?}", answer);
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "merge search...");
+}
+
+#[test]
+fn t_base_merge() {
+    let step: usize = 128;
+    let v = create_base12(step);
+
+    println!("v.len: {}", v.len());
+
+    assert_eq!(v.len(), step.pow(4));
+    let w = create_base12(step);
+    assert_eq!(w.len(), step.pow(4));
+
+    //excellent step
+    //	merge_search12(&v, &w[0..100_000]);
+
+    merge_search12_t(&v, &w);
+
+    /*
+        //let chunks = std::cmp::min(len, threads);
+        //realize w is a power of 2, so chunks should be a smaller value that divides w.len. experiment:
+        let _ = crossbeam::scope(|scope| {
+                for slice in w.chunks(2_usize.pow(26)) {
+                        scope.spawn(|_| merge_search12(&v, slice));
+                }
+        });
     */
 }
