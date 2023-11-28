@@ -4636,7 +4636,7 @@ fn give_arc_arr(cap: usize) -> [Arc<Mutex<Vec<[u8; 11]>>>; 256] {
     /*
         let v1 = Arc::new(Mutex::new(vec![]));
         let v2 = Arc::new(Mutex::new(vec![]));
-            //let words_arr = [ words1, words2 ];
+            //let base_table = [ words1, words2 ];
             [ v1, v2 ]
     */
     [
@@ -4899,7 +4899,6 @@ fn give_arc_arr(cap: usize) -> [Arc<Mutex<Vec<[u8; 11]>>>; 256] {
     ]
 }
 
-//fn give_arc_clone_arr( v: &[Arc<Mutex<Vec<[u8; 12]>>>]) -> [ Arc<Mutex<Vec<[u8; 12]>>>; 256] {
 fn give_arc_clone_arr(v: &[Arc<Mutex<Vec<[u8; 11]>>>]) -> [Arc<Mutex<Vec<[u8; 11]>>>; 256] {
     /*
         let clone1 : Arc<Mutex<Vec<[u8; 12]>>> = Arc::clone(&v[0]);
@@ -5168,6 +5167,12 @@ fn give_arc_clone_arr(v: &[Arc<Mutex<Vec<[u8; 11]>>>]) -> [Arc<Mutex<Vec<[u8; 11
 
 #[test]
 fn online_ext() {
+    let v = create_arc_base();
+
+    println!("v has size: {}", v.len());
+}
+
+fn create_arc_base() -> [Arc<Mutex<Vec<[u8; 11]>>>; 256] {
     // `Vec<String>` is wrapped inside a `Mutex` and `Arc`.
     // `Mutex` provides synchronization, `Arc` provides lifetime so each
     // thread participates in ownership over the `Mutex<Vec<String>>`
@@ -5176,29 +5181,20 @@ fn online_ext() {
 
     let step: usize = 128;
 
-    /*
-        let words1 = Arc::new(Mutex::new(vec![]));
-        let words2 = Arc::new(Mutex::new(vec![]));
-            let words_arr = [ words1, words2 ];
-    */
-    let words_arr = give_arc_arr(step.pow(3));
+    // gives a [Arc<Mutex<Vec<[u8; 11]>>>; 256]
+    let base_table = give_arc_arr(step.pow(3));
+
+    println!("base_table has size: {}", base_table.len());
 
     let mut threads = vec![];
     for x in 0..step {
         threads.push(thread::spawn({
-            //let clone1 = Arc::clone(&words_arr[0]);
-            //let clone2 = Arc::clone(&words_arr[1]);
-            //let mut clone_arr = [];
-            //let mut clone_arr : Vec<Arc::clone<Vec<[<u8>; 12]>>> = vec![];
-            //let mut clone_arr : Vec<Arc::clone<Mutex<Vec<[<u8>; 12]>>>> = vec![];
-            //for i in 0..words_arr.len() {
-            //clone_arr[i] = Arc::clone(&words_arr[i]);
-            //clone_arr[i].push(Arc::clone(&words_arr[i]));
-            //}
-            let clone_arr = give_arc_clone_arr(&words_arr);
+            // returns element clones of [Arc<Mutex<Vec<[u8; 11]>>>; 256]
+            let clone_arr = give_arc_clone_arr(&base_table);
 
             move || {
                 let mut rng = ChaCha8Rng::from_entropy();
+                let mut write_cheat = true;
                 for j in 0..step {
                     for k in 0..step {
                         for l in 0..step {
@@ -5226,20 +5222,13 @@ fn online_ext() {
                             //v.push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
                             v.push([v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]);
 
-                            /*
-                                                                                    if v1 % 2 == 0 {
-                                                                                        //let mut v = clone1.lock().unwrap();
-                                                                                        let mut v = clone_arr[0].lock().unwrap();
-                                                                                        v.push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
-                                                                                        //v.push(x.to_string());
-                                                                                    }
-                                                                                    else {
-                                                                                        //let mut v = clone2.lock().unwrap();
-                                                                                        let mut v = clone_arr[1].lock().unwrap();
-                                                                                        v.push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
-                                                                                        //v.push(x.to_string());
-                                                                                    }
-                            */
+                            if write_cheat && index == 200 {
+                                v.push([
+                                    0x73, 0x73, 0x73, 0x73, 0x73, 0x73, 0x73, 0x73, 0x73, 0x73,
+                                    0x73,
+                                ]);
+                                write_cheat = false;
+                            }
                         } //end l
                     } //end k
                 } //end j
@@ -5252,24 +5241,14 @@ fn online_ext() {
 
     sort_utils::end_and_print_time(start, "filled in values...");
 
-    let clone_arr = give_arc_clone_arr(&words_arr);
+    // returns element clones of [Arc<Mutex<Vec<[u8; 11]>>>; 256]
+    let clone_arr = give_arc_clone_arr(&base_table);
 
-    for i in 0..words_arr.len() {
+    for i in 0..base_table.len() {
         let mut v = clone_arr[i].lock().unwrap();
         //good confirmation step, but clutters print:
         //println!("each array length {} and capacity {}",v.len(), v.capacity());
     }
-
-    /*
-        //println!("{:?}", words_arr);
-            for i in 0..words_arr.len() {
-                //println!("each array length {} and capacity {}", words_arr[i].lock().unwrap().len(), words_arr[i].lock().unwrap().capacity());
-                //let lock = Arc::try_unwrap(words_arr[i]).expect("Lock still has multiple owners");
-                let lock = &words_arr[i].clone();
-                //let v = lock.into_inner().expect("Mutex cannot be locked");
-                println!("each array length {} and capacity {}",lock.len(), lock.capacity());
-            }
-    */
 
     let start = SystemTime::now();
 
@@ -5277,7 +5256,7 @@ fn online_ext() {
     for x in 0..=255 {
         //sort all the pots. step doesn't line up with pots bc i can't build that many pots on my VM.
         threads.push(thread::spawn({
-            let clone_arr = give_arc_clone_arr(&words_arr);
+            let clone_arr = give_arc_clone_arr(&base_table);
 
             move || {
                 //println!("hoping to sort array {}", x);
@@ -5296,7 +5275,7 @@ fn online_ext() {
 
     let start = SystemTime::now();
 
-    for i in 0..words_arr.len() {
+    for i in 0..base_table.len() {
         let mut v = clone_arr[i].lock().unwrap();
         assert!(sort_utils::is_sorted(&v));
         /*
@@ -5309,4 +5288,166 @@ fn online_ext() {
     }
 
     sort_utils::end_and_print_time(start, "confirmed sort...");
+
+    base_table
+}
+
+#[test]
+fn t_arc_base_merge() {
+    //let step: usize = 128;
+    let v = create_arc_base();
+
+    println!("v.len: {}", v.len());
+
+    let w = create_arc_base();
+
+    //excellent step
+    //merge_search_arc(Arc::clone(&v[0]),Arc::clone(&w[0]));
+
+    merge_search_arc_t(&v, &w);
+
+    /*
+            //cheat to make a match: //deadlocks. cheat in array creation instead.
+
+            let clone_arr_v = give_arc_clone_arr(&v);
+            let mut u = clone_arr_v[255].lock().unwrap();
+            let hacked_value = u[1_000_000];
+
+            let clone_arr_w = give_arc_clone_arr(&w);
+            let mut x = clone_arr_w[255].lock().unwrap();
+            x[500_000] = hacked_value;
+
+            let vv = v.clone();
+            let ww = w.clone();
+
+            drop(v);
+            drop(w);
+
+        merge_search_arc_t(&vv, &ww);
+    */
+}
+
+//[Arc<Mutex<Vec<[u8; 11]>>>; 256] {
+fn merge_search_arc_t(v: &[Arc<Mutex<Vec<[u8; 11]>>>; 256], w: &[Arc<Mutex<Vec<[u8; 11]>>>; 256]) {
+    let start = SystemTime::now();
+
+    let mut threads = vec![];
+    for x in 0..=255 {
+        //sort all the pots. step doesn't line up with pots bc i can't build that many pots on my VM.
+        threads.push(thread::spawn({
+            let clone_arr_v = give_arc_clone_arr(v);
+            let clone_arr_w = give_arc_clone_arr(w);
+
+            move || {
+                //println!("hoping to sort array {}", x);
+                //let mut v = clone_arr_v[x].lock().unwrap();
+                //let mut w = clone_arr_w[x].lock().unwrap();
+
+                //merge_search_arc(v, w);
+
+                //merge_search_arc(clone_arr_v[x], clone_arr_w[x]);
+
+                let mut v = clone_arr_v[x].lock().unwrap();
+                let mut w = clone_arr_w[x].lock().unwrap();
+
+                //merge_search_arc(v, w);
+                merge_search11(&v, &w);
+            }
+        }));
+    }
+    for t in threads {
+        t.join().unwrap();
+    }
+
+    sort_utils::end_and_print_time(start, "merge searched...");
+}
+
+//[Arc<Mutex<Vec<[u8; 11]>>>; 256] {
+fn merge_search_arc(v: Arc<Mutex<Vec<[u8; 11]>>>, w: Arc<Mutex<Vec<[u8; 11]>>>) {
+    let start = SystemTime::now();
+    let mut i = 0;
+    let mut j = 0;
+    let v = v.lock().unwrap();
+    let w = w.lock().unwrap();
+    let v_last = v.len() - 1;
+    let w_last = w.len() - 1;
+    //let v_last = v.lock().unwrap().len() - 1;
+    //let w_last = w.lock().unwrap().len() - 1;
+    let mut answer_bag = Vec::new();
+    //assumption: v.len and w.len are the same.
+    let mut found = false;
+    for k in 0..v.len() + w.len() {
+        if j >= w_last {
+            break;
+        } else if i >= v_last {
+            break;
+        } else if &w[j][0..8] < &v[i][0..8] {
+            j = j + 1;
+            continue;
+        } else if &v[i][0..8] < &w[j][0..8] {
+            i = i + 1;
+            continue;
+        } else if &v[i][0..8] == &w[j][0..8] {
+            found = true;
+            answer_bag.push(v[i]);
+            i = i + 1;
+            j = j + 1;
+        } else {
+            println!("don't expect this can happen....");
+        }
+    }
+
+    if !found {
+        println!("nothing found....");
+    } else {
+        //found
+        for answer in answer_bag {
+            println!("found {:x?}", answer);
+        }
+    }
+
+    sort_utils::end_and_print_time(start, "merge search...");
+}
+
+fn merge_search11(v: &Vec<[u8; 11]>, w: &[[u8; 11]]) {
+    //    let start = SystemTime::now();
+    let mut i = 0;
+    let mut j = 0;
+    let v_last = v.len() - 1;
+    let w_last = w.len() - 1;
+    let mut answer_bag = Vec::new();
+    //assumption: v.len and w.len are the same.
+    let mut found = false;
+    for k in 0..v.len() + w.len() {
+        if j >= w_last {
+            break;
+        } else if i >= v_last {
+            break;
+        } else if &w[j][0..8] < &v[i][0..8] {
+            j = j + 1;
+            continue;
+        } else if &v[i][0..8] < &w[j][0..8] {
+            i = i + 1;
+            continue;
+        } else if &v[i][0..8] == &w[j][0..8] {
+            found = true;
+            answer_bag.push(v[i]);
+            i = i + 1;
+            j = j + 1;
+        } else {
+            println!("don't expect this can happen....");
+        }
+    }
+
+    if !found {
+        println!("nothing found....");
+    } else {
+        //found
+        for answer in answer_bag {
+            println!("found {:x?}", answer);
+        }
+    }
+
+    //clutters...
+    //sort_utils::end_and_print_time(start, "merge search...");
 }
