@@ -5451,3 +5451,22 @@ fn merge_search11(v: &Vec<[u8; 11]>, w: &[[u8; 11]]) {
     //clutters...
     //sort_utils::end_and_print_time(start, "merge search...");
 }
+
+#[test]
+fn t_arc_base_merge_together() {
+    let mut v: [Arc<Mutex<Vec<[u8; 11]>>>; 256] = give_arc_arr(1);
+    let mut w: [Arc<Mutex<Vec<[u8; 11]>>>; 256] = give_arc_arr(1);
+    //let w : [Arc<Mutex<Vec<[u8; 11]>>>; 256] = [Arc::new(Mutex::new(vec![[0; 11]; 1])); 256];
+
+    let _ = crossbeam::scope(|scope| {
+        scope.spawn(|_| {
+            v = create_arc_base();
+        });
+
+        scope.spawn(|_| {
+            w = create_arc_base();
+        });
+    });
+
+    merge_search_arc_t(&v, &w);
+}
