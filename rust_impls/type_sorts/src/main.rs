@@ -9,6 +9,13 @@ use std::time::SystemTime;
 use std::thread;
 use std::time::Duration;
 
+use std::sync::{Arc, Mutex};
+
+use std::fs;
+use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
+
 #[derive(Clone, Copy)]
 struct WrapperTwoStageOneLayer(*mut Vec<[u8; 2]>);
 
@@ -20,6 +27,12 @@ struct WrapperTwoStage(*mut Vec<Vec<[u8; 2]>>);
 
 unsafe impl Send for WrapperTwoStage {}
 unsafe impl Sync for WrapperTwoStage {}
+
+#[derive(Clone, Copy)]
+struct WrapperArr12(*mut [Vec<[u8; 12]>; 256]);
+
+unsafe impl Send for WrapperArr12 {}
+unsafe impl Sync for WrapperArr12 {}
 
 #[derive(Clone, Copy)]
 struct WrapperOneArr12(*mut Vec<[u8; 12]>);
@@ -341,6 +354,538 @@ fn create_flat_three(sz: usize) -> Vec<[u8; 3]> {
 
 fn create_flat_twelve(sz: usize) -> Vec<[u8; 12]> {
     let mut v = vec![[0 as u8; 12]; sz];
+    v
+}
+
+fn create_arr_twelve(cap: usize) -> [Vec<[u8; 12]>; 256] {
+    //let mut v = [vec![[0 as u8; 12]; cap]; 256]; //copy not impl.
+    //let mut v = [Vec::with_capacity(cap); 256];
+    // e.g., let v: [Vec<u8>; 10] = [vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![]];
+    let v: [Vec<[u8; 12]>; 256] = [
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+        Vec::with_capacity(cap),
+    ];
+
+    v
+}
+
+fn create_arc_arr_twelve(v: &[Vec<[u8; 12]>; 256]) -> [Arc<Mutex<&Vec<[u8; 12]>>>; 256] {
+    //let mut v = [vec![[0 as u8; 12]; cap]; 256]; //copy not impl.
+    //let mut v = [Vec::with_capacity(cap); 256];
+    // e.g., let v: [Vec<u8>; 10] = [vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![]];
+
+    let v = [
+        Arc::new(Mutex::new(&v[0])),
+        Arc::new(Mutex::new(&v[1])),
+        Arc::new(Mutex::new(&v[2])),
+        Arc::new(Mutex::new(&v[3])),
+        Arc::new(Mutex::new(&v[4])),
+        Arc::new(Mutex::new(&v[5])),
+        Arc::new(Mutex::new(&v[6])),
+        Arc::new(Mutex::new(&v[7])),
+        Arc::new(Mutex::new(&v[8])),
+        Arc::new(Mutex::new(&v[9])),
+        Arc::new(Mutex::new(&v[10])),
+        Arc::new(Mutex::new(&v[11])),
+        Arc::new(Mutex::new(&v[12])),
+        Arc::new(Mutex::new(&v[13])),
+        Arc::new(Mutex::new(&v[14])),
+        Arc::new(Mutex::new(&v[15])),
+        Arc::new(Mutex::new(&v[16])),
+        Arc::new(Mutex::new(&v[17])),
+        Arc::new(Mutex::new(&v[18])),
+        Arc::new(Mutex::new(&v[19])),
+        Arc::new(Mutex::new(&v[20])),
+        Arc::new(Mutex::new(&v[21])),
+        Arc::new(Mutex::new(&v[22])),
+        Arc::new(Mutex::new(&v[23])),
+        Arc::new(Mutex::new(&v[24])),
+        Arc::new(Mutex::new(&v[25])),
+        Arc::new(Mutex::new(&v[26])),
+        Arc::new(Mutex::new(&v[27])),
+        Arc::new(Mutex::new(&v[28])),
+        Arc::new(Mutex::new(&v[29])),
+        Arc::new(Mutex::new(&v[30])),
+        Arc::new(Mutex::new(&v[31])),
+        Arc::new(Mutex::new(&v[32])),
+        Arc::new(Mutex::new(&v[33])),
+        Arc::new(Mutex::new(&v[34])),
+        Arc::new(Mutex::new(&v[35])),
+        Arc::new(Mutex::new(&v[36])),
+        Arc::new(Mutex::new(&v[37])),
+        Arc::new(Mutex::new(&v[38])),
+        Arc::new(Mutex::new(&v[39])),
+        Arc::new(Mutex::new(&v[40])),
+        Arc::new(Mutex::new(&v[41])),
+        Arc::new(Mutex::new(&v[42])),
+        Arc::new(Mutex::new(&v[43])),
+        Arc::new(Mutex::new(&v[44])),
+        Arc::new(Mutex::new(&v[45])),
+        Arc::new(Mutex::new(&v[46])),
+        Arc::new(Mutex::new(&v[47])),
+        Arc::new(Mutex::new(&v[48])),
+        Arc::new(Mutex::new(&v[49])),
+        Arc::new(Mutex::new(&v[50])),
+        Arc::new(Mutex::new(&v[51])),
+        Arc::new(Mutex::new(&v[52])),
+        Arc::new(Mutex::new(&v[53])),
+        Arc::new(Mutex::new(&v[54])),
+        Arc::new(Mutex::new(&v[55])),
+        Arc::new(Mutex::new(&v[56])),
+        Arc::new(Mutex::new(&v[57])),
+        Arc::new(Mutex::new(&v[58])),
+        Arc::new(Mutex::new(&v[59])),
+        Arc::new(Mutex::new(&v[60])),
+        Arc::new(Mutex::new(&v[61])),
+        Arc::new(Mutex::new(&v[62])),
+        Arc::new(Mutex::new(&v[63])),
+        Arc::new(Mutex::new(&v[64])),
+        Arc::new(Mutex::new(&v[65])),
+        Arc::new(Mutex::new(&v[66])),
+        Arc::new(Mutex::new(&v[67])),
+        Arc::new(Mutex::new(&v[68])),
+        Arc::new(Mutex::new(&v[69])),
+        Arc::new(Mutex::new(&v[70])),
+        Arc::new(Mutex::new(&v[71])),
+        Arc::new(Mutex::new(&v[72])),
+        Arc::new(Mutex::new(&v[73])),
+        Arc::new(Mutex::new(&v[74])),
+        Arc::new(Mutex::new(&v[75])),
+        Arc::new(Mutex::new(&v[76])),
+        Arc::new(Mutex::new(&v[77])),
+        Arc::new(Mutex::new(&v[78])),
+        Arc::new(Mutex::new(&v[79])),
+        Arc::new(Mutex::new(&v[80])),
+        Arc::new(Mutex::new(&v[81])),
+        Arc::new(Mutex::new(&v[82])),
+        Arc::new(Mutex::new(&v[83])),
+        Arc::new(Mutex::new(&v[84])),
+        Arc::new(Mutex::new(&v[85])),
+        Arc::new(Mutex::new(&v[86])),
+        Arc::new(Mutex::new(&v[87])),
+        Arc::new(Mutex::new(&v[88])),
+        Arc::new(Mutex::new(&v[89])),
+        Arc::new(Mutex::new(&v[90])),
+        Arc::new(Mutex::new(&v[91])),
+        Arc::new(Mutex::new(&v[92])),
+        Arc::new(Mutex::new(&v[93])),
+        Arc::new(Mutex::new(&v[94])),
+        Arc::new(Mutex::new(&v[95])),
+        Arc::new(Mutex::new(&v[96])),
+        Arc::new(Mutex::new(&v[97])),
+        Arc::new(Mutex::new(&v[98])),
+        Arc::new(Mutex::new(&v[99])),
+        Arc::new(Mutex::new(&v[100])),
+        Arc::new(Mutex::new(&v[101])),
+        Arc::new(Mutex::new(&v[102])),
+        Arc::new(Mutex::new(&v[103])),
+        Arc::new(Mutex::new(&v[104])),
+        Arc::new(Mutex::new(&v[105])),
+        Arc::new(Mutex::new(&v[106])),
+        Arc::new(Mutex::new(&v[107])),
+        Arc::new(Mutex::new(&v[108])),
+        Arc::new(Mutex::new(&v[109])),
+        Arc::new(Mutex::new(&v[110])),
+        Arc::new(Mutex::new(&v[111])),
+        Arc::new(Mutex::new(&v[112])),
+        Arc::new(Mutex::new(&v[113])),
+        Arc::new(Mutex::new(&v[114])),
+        Arc::new(Mutex::new(&v[115])),
+        Arc::new(Mutex::new(&v[116])),
+        Arc::new(Mutex::new(&v[117])),
+        Arc::new(Mutex::new(&v[118])),
+        Arc::new(Mutex::new(&v[119])),
+        Arc::new(Mutex::new(&v[120])),
+        Arc::new(Mutex::new(&v[121])),
+        Arc::new(Mutex::new(&v[122])),
+        Arc::new(Mutex::new(&v[123])),
+        Arc::new(Mutex::new(&v[124])),
+        Arc::new(Mutex::new(&v[125])),
+        Arc::new(Mutex::new(&v[126])),
+        Arc::new(Mutex::new(&v[127])),
+        Arc::new(Mutex::new(&v[128])),
+        Arc::new(Mutex::new(&v[129])),
+        Arc::new(Mutex::new(&v[130])),
+        Arc::new(Mutex::new(&v[131])),
+        Arc::new(Mutex::new(&v[132])),
+        Arc::new(Mutex::new(&v[133])),
+        Arc::new(Mutex::new(&v[134])),
+        Arc::new(Mutex::new(&v[135])),
+        Arc::new(Mutex::new(&v[136])),
+        Arc::new(Mutex::new(&v[137])),
+        Arc::new(Mutex::new(&v[138])),
+        Arc::new(Mutex::new(&v[139])),
+        Arc::new(Mutex::new(&v[140])),
+        Arc::new(Mutex::new(&v[141])),
+        Arc::new(Mutex::new(&v[142])),
+        Arc::new(Mutex::new(&v[143])),
+        Arc::new(Mutex::new(&v[144])),
+        Arc::new(Mutex::new(&v[145])),
+        Arc::new(Mutex::new(&v[146])),
+        Arc::new(Mutex::new(&v[147])),
+        Arc::new(Mutex::new(&v[148])),
+        Arc::new(Mutex::new(&v[149])),
+        Arc::new(Mutex::new(&v[150])),
+        Arc::new(Mutex::new(&v[151])),
+        Arc::new(Mutex::new(&v[152])),
+        Arc::new(Mutex::new(&v[153])),
+        Arc::new(Mutex::new(&v[154])),
+        Arc::new(Mutex::new(&v[155])),
+        Arc::new(Mutex::new(&v[156])),
+        Arc::new(Mutex::new(&v[157])),
+        Arc::new(Mutex::new(&v[158])),
+        Arc::new(Mutex::new(&v[159])),
+        Arc::new(Mutex::new(&v[160])),
+        Arc::new(Mutex::new(&v[161])),
+        Arc::new(Mutex::new(&v[162])),
+        Arc::new(Mutex::new(&v[163])),
+        Arc::new(Mutex::new(&v[164])),
+        Arc::new(Mutex::new(&v[165])),
+        Arc::new(Mutex::new(&v[166])),
+        Arc::new(Mutex::new(&v[167])),
+        Arc::new(Mutex::new(&v[168])),
+        Arc::new(Mutex::new(&v[169])),
+        Arc::new(Mutex::new(&v[170])),
+        Arc::new(Mutex::new(&v[171])),
+        Arc::new(Mutex::new(&v[172])),
+        Arc::new(Mutex::new(&v[173])),
+        Arc::new(Mutex::new(&v[174])),
+        Arc::new(Mutex::new(&v[175])),
+        Arc::new(Mutex::new(&v[176])),
+        Arc::new(Mutex::new(&v[177])),
+        Arc::new(Mutex::new(&v[178])),
+        Arc::new(Mutex::new(&v[179])),
+        Arc::new(Mutex::new(&v[180])),
+        Arc::new(Mutex::new(&v[181])),
+        Arc::new(Mutex::new(&v[182])),
+        Arc::new(Mutex::new(&v[183])),
+        Arc::new(Mutex::new(&v[184])),
+        Arc::new(Mutex::new(&v[185])),
+        Arc::new(Mutex::new(&v[186])),
+        Arc::new(Mutex::new(&v[187])),
+        Arc::new(Mutex::new(&v[188])),
+        Arc::new(Mutex::new(&v[189])),
+        Arc::new(Mutex::new(&v[190])),
+        Arc::new(Mutex::new(&v[191])),
+        Arc::new(Mutex::new(&v[192])),
+        Arc::new(Mutex::new(&v[193])),
+        Arc::new(Mutex::new(&v[194])),
+        Arc::new(Mutex::new(&v[195])),
+        Arc::new(Mutex::new(&v[196])),
+        Arc::new(Mutex::new(&v[197])),
+        Arc::new(Mutex::new(&v[198])),
+        Arc::new(Mutex::new(&v[199])),
+        Arc::new(Mutex::new(&v[200])),
+        Arc::new(Mutex::new(&v[201])),
+        Arc::new(Mutex::new(&v[202])),
+        Arc::new(Mutex::new(&v[203])),
+        Arc::new(Mutex::new(&v[204])),
+        Arc::new(Mutex::new(&v[205])),
+        Arc::new(Mutex::new(&v[206])),
+        Arc::new(Mutex::new(&v[207])),
+        Arc::new(Mutex::new(&v[208])),
+        Arc::new(Mutex::new(&v[209])),
+        Arc::new(Mutex::new(&v[210])),
+        Arc::new(Mutex::new(&v[211])),
+        Arc::new(Mutex::new(&v[212])),
+        Arc::new(Mutex::new(&v[213])),
+        Arc::new(Mutex::new(&v[214])),
+        Arc::new(Mutex::new(&v[215])),
+        Arc::new(Mutex::new(&v[216])),
+        Arc::new(Mutex::new(&v[217])),
+        Arc::new(Mutex::new(&v[218])),
+        Arc::new(Mutex::new(&v[219])),
+        Arc::new(Mutex::new(&v[220])),
+        Arc::new(Mutex::new(&v[221])),
+        Arc::new(Mutex::new(&v[222])),
+        Arc::new(Mutex::new(&v[223])),
+        Arc::new(Mutex::new(&v[224])),
+        Arc::new(Mutex::new(&v[225])),
+        Arc::new(Mutex::new(&v[226])),
+        Arc::new(Mutex::new(&v[227])),
+        Arc::new(Mutex::new(&v[228])),
+        Arc::new(Mutex::new(&v[229])),
+        Arc::new(Mutex::new(&v[230])),
+        Arc::new(Mutex::new(&v[231])),
+        Arc::new(Mutex::new(&v[232])),
+        Arc::new(Mutex::new(&v[233])),
+        Arc::new(Mutex::new(&v[234])),
+        Arc::new(Mutex::new(&v[235])),
+        Arc::new(Mutex::new(&v[236])),
+        Arc::new(Mutex::new(&v[237])),
+        Arc::new(Mutex::new(&v[238])),
+        Arc::new(Mutex::new(&v[239])),
+        Arc::new(Mutex::new(&v[240])),
+        Arc::new(Mutex::new(&v[241])),
+        Arc::new(Mutex::new(&v[242])),
+        Arc::new(Mutex::new(&v[243])),
+        Arc::new(Mutex::new(&v[244])),
+        Arc::new(Mutex::new(&v[245])),
+        Arc::new(Mutex::new(&v[246])),
+        Arc::new(Mutex::new(&v[247])),
+        Arc::new(Mutex::new(&v[248])),
+        Arc::new(Mutex::new(&v[249])),
+        Arc::new(Mutex::new(&v[250])),
+        Arc::new(Mutex::new(&v[251])),
+        Arc::new(Mutex::new(&v[252])),
+        Arc::new(Mutex::new(&v[253])),
+        Arc::new(Mutex::new(&v[254])),
+        Arc::new(Mutex::new(&v[255])),
+    ];
     v
 }
 
@@ -3798,4 +4343,970 @@ fn t_base_merge() {
                 }
         });
     */
+}
+
+#[test]
+fn t_create_base12_f() {
+    create_base12_f(128);
+}
+
+fn create_base12_f(step: usize) {
+    let start = SystemTime::now();
+
+    //let mut v = create_flat_twelve(step.pow(4)); //smaller for speed
+    //let mut v =  create_flat_three(step.pow(4));  //full structure
+
+    //let mut raw_v: WrapperOneArr12 = WrapperOneArr12(&mut v);
+
+    let _ = crossbeam::scope(|scope| {
+        for i in 0..step {
+            scope.spawn(move |_| {
+                //raw_v = raw_v; //disjoint capture
+                let mut v = create_flat_twelve(step.pow(3));
+
+                let mut rng = ChaCha8Rng::from_entropy();
+                for j in 0..step {
+                    for k in 0..step {
+                        for l in 0..step {
+                            let index = (j * step.pow(2)) + (k * step) + l;
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v1 = r_bytes[0];
+                            let v2 = r_bytes[1];
+                            let v3 = r_bytes[2];
+                            let v4 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v5 = r_bytes[0];
+                            let v6 = r_bytes[1];
+                            let v7 = r_bytes[2];
+                            let v8 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v9 = r_bytes[0];
+                            let v10 = r_bytes[1];
+                            let v11 = r_bytes[2];
+                            let v12 = r_bytes[3];
+
+                            v[index] = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12];
+                        } //end l
+                    } //end k
+
+                    //write to file.
+                    let filename = format!("test{}", i);
+                    //let mut f = File::create(filename)?;
+                    let mut f = File::create(filename).unwrap();
+                    //fs::write(filename, v)?;
+                    //fs::write(f, &v.as_slice());
+                    //fs::write(f, &v.to_string());
+                    //fs::write(f, &v.flatten());
+                    //fs::write(f, v.iter().flatten());
+                    //fs::write(f, v.into_iter().flatten().collect());
+                    //f.write_all(v.into_iter().flatten().collect()).expect("Unable to write data");
+                    //nested.into_iter().flatten().collect()
+                    //let mut f = BufWriter::new(&filename);
+                    //f.write_all(v.as_bytes()).expect("Unable to write data");
+                    //f.write_all(v.join("\n")).expect("Unable to write data");
+                    //f.write_all(v.join(" ")).expect("Unable to write data");
+                    //f.write_all(v).expect("Unable to write data");
+                    //f.write_all(v.as_slice()).expect("Unable to write data");
+                } //end j
+            }); //end spawn
+        } // end i
+    }); //end crossbeam
+
+    sort_utils::end_and_print_time(start, "filled values in base table...");
+
+    //sort_separately12(&mut v);
+
+    //v
+}
+
+#[test]
+fn t_create_base12_arr() {
+    create_base12_arr(256_usize.pow(3));
+}
+
+//this doesn't work yet.
+fn create_base12_arr(cap: usize) {
+    let start = SystemTime::now();
+
+    let step = 128;
+
+    //let mut v = create_flat_twelve(step.pow(4)); //smaller for speed
+    //let mut v =  create_flat_three(step.pow(4));  //full structure
+
+    let mut v = create_arr_twelve(step); //messed this up accidentally find and replace...
+
+    println!(
+        "v has {} entries where each is a vector with capacity: {}",
+        v.len(),
+        v[0].capacity()
+    );
+
+    let mut raw_v: WrapperArr12 = WrapperArr12(&mut v);
+
+    //let mut alt_v =  Arc::new(Mutex::new(v));
+    let mut arc_arr_v = create_arc_arr_twelve(&v);
+
+    let _ = crossbeam::scope(|scope| {
+        for i in 0..step {
+            //let mut whole_clone = [Arc<Mutex<&Vec<[u8; 12]>>>; 8];
+            //let mut whole_clone = [0; 8];
+            //let mut whole_clone = Vec::new();
+            //let mut whole_clone = Arc::new(Mutex::new(Vec::new()));
+            //let mut whole_clone = Arc::new(Vec::new());
+            let mut wc = Vec::new();
+            //let clone = Arc::clone(&alt_v);
+            for arc in 0..arc_arr_v.len() {
+                //whole_clone[arc] = Arc::clone(&arc_arr_v[arc]);
+                //whole_clone.push(Arc::clone(&arc_arr_v[arc]));
+                //whole_clone.lock().unwrap().push(Arc::clone(&arc_arr_v[arc]));
+                //whole_clone.unwrap().push(Arc::clone(&arc_arr_v[arc]));
+                //whole_clone.clone().push(Arc::clone(&arc_arr_v[arc]));
+                wc.push(Arc::clone(&arc_arr_v[arc]));
+            }
+
+            let mut whole_clone = Arc::new(wc);
+
+            let clone = Arc::clone(&whole_clone);
+
+            scope.spawn(move |_| {
+                raw_v = raw_v; //disjoint capture
+
+                let mut rng = ChaCha8Rng::from_entropy();
+                for j in 0..step {
+                    for k in 0..step {
+                        for l in 0..step {
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v1 = r_bytes[0];
+                            let v2 = r_bytes[1];
+                            let v3 = r_bytes[2];
+                            let v4 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v5 = r_bytes[0];
+                            let v6 = r_bytes[1];
+                            let v7 = r_bytes[2];
+                            let v8 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v9 = r_bytes[0];
+                            let v10 = r_bytes[1];
+                            let v11 = r_bytes[2];
+                            let v12 = r_bytes[3];
+
+                            /*
+                                                            //24s - not as bad as i expected. but this is overkill locking on the entire structure.
+                                            let mut no_v = clone.lock().unwrap();
+                                            no_v[usize::from(v1)].push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
+                            */
+
+                            /*
+                                                                                    unsafe {
+                                                                                        (*raw_v.0)[usize::from(v1)].push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
+                                                                                    }
+                            */
+                            unsafe {
+
+                                //let mut this_v = whole_clone.clone().unwrap()[usize::from(v1)].lock().unwrap();
+                                //let mut this_v = whole_clone.clone()[usize::from(v1)].lock().unwrap();
+                                //let mut this_v = clone[usize::from(v1)].lock().unwrap();
+                                //let mut this_v = whole_clone[usize::from(v1)].lock().unwrap();
+                                //this_v.push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
+                                //(*raw_v.0)[usize::from(v1)].push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
+                            }
+                        } //end l
+                    } //end k
+                } //end j
+            }); //end spawn
+        } // end i
+    }); //end crossbeam
+
+    sort_utils::end_and_print_time(start, "filled values in base table...");
+
+    println!("each v has length:");
+    let mut min = cap;
+    let mut max = 0;
+
+    /*
+            for i in 0..v.len() {
+                //println!("v[{}] has length: {}", i, v[i].len());
+                if v[i].len() < min {
+                    min = v[i].len();
+                }
+                if v[i].len() > max {
+                    max = v[i].len();
+                }
+            }
+    */
+
+    /*
+            for i in 0..alt_v.lock().unwrap().len() {
+                //println!("v[{}] has length: {}", i, v[i].len());
+                if alt_v.lock().unwrap()[i].len() < min {
+                    min = alt_v.lock().unwrap()[i].len();
+                }
+                if alt_v.lock().unwrap()[i].len() > max {
+                    max = alt_v.lock().unwrap()[i].len();
+                }
+            }
+    */
+    println!(
+        "v is 256 arrays where min length is {} and max is {}",
+        min, max
+    );
+    //sort_separately12(&mut v);
+
+    //v
+}
+
+#[test]
+fn proto() {
+    let step = 10;
+    let words = Arc::new(Mutex::new(vec![]));
+    let mut threads = vec![];
+    for x in 0..5 {
+        threads.push(thread::spawn({
+            let clone = Arc::clone(&words);
+            move || {
+                let mut v = clone.lock().unwrap();
+                //v.push(x.to_string());
+                let mut rng = ChaCha8Rng::from_entropy();
+                for j in 0..step {
+                    for k in 0..step {
+                        for l in 0..step {
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v1 = r_bytes[0];
+                            let v2 = r_bytes[1];
+                            let v3 = r_bytes[2];
+                            let v4 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v5 = r_bytes[0];
+                            let v6 = r_bytes[1];
+                            let v7 = r_bytes[2];
+                            let v8 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v9 = r_bytes[0];
+                            let v10 = r_bytes[1];
+                            let v11 = r_bytes[2];
+                            let v12 = r_bytes[3];
+
+                            v.push([v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]);
+                        } //end l
+                    } //end k
+                } //end j
+            }
+        }));
+    }
+    for t in threads {
+        t.join().unwrap();
+    }
+    println!("{:?}", words);
+}
+
+#[test]
+fn online_example() {
+    // `Vec<String>` is wrapped inside a `Mutex` and `Arc`.
+    // `Mutex` provides synchronization, `Arc` provides lifetime so each
+    // thread participates in ownership over the `Mutex<Vec<String>>`
+    let words = Arc::new(Mutex::new(vec![]));
+    let mut threads = vec![];
+    for x in 0..5 {
+        threads.push(thread::spawn({
+            let clone = Arc::clone(&words);
+            move || {
+                let mut v = clone.lock().unwrap();
+                v.push(x.to_string());
+            }
+        }));
+    }
+    for t in threads {
+        t.join().unwrap();
+    }
+    println!("{:?}", words);
+}
+
+//fn give_arc_arr(cap : usize) -> [ Arc<Mutex<Vec<[u8; 12]>>>; 256] {
+fn give_arc_arr(cap: usize) -> [Arc<Mutex<Vec<[u8; 11]>>>; 256] {
+    /*
+        let v1 = Arc::new(Mutex::new(vec![]));
+        let v2 = Arc::new(Mutex::new(vec![]));
+            //let words_arr = [ words1, words2 ];
+            [ v1, v2 ]
+    */
+    [
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+        Arc::new(Mutex::new(Vec::with_capacity(cap))),
+    ]
+}
+
+//fn give_arc_clone_arr( v: &[Arc<Mutex<Vec<[u8; 12]>>>]) -> [ Arc<Mutex<Vec<[u8; 12]>>>; 256] {
+fn give_arc_clone_arr(v: &[Arc<Mutex<Vec<[u8; 11]>>>]) -> [Arc<Mutex<Vec<[u8; 11]>>>; 256] {
+    /*
+        let clone1 : Arc<Mutex<Vec<[u8; 12]>>> = Arc::clone(&v[0]);
+        let clone2 : Arc<Mutex<Vec<[u8; 12]>>> = Arc::clone(&v[1]);
+        [ clone1, clone2 ]
+    */
+    [
+        Arc::clone(&v[0]),
+        Arc::clone(&v[1]),
+        Arc::clone(&v[2]),
+        Arc::clone(&v[3]),
+        Arc::clone(&v[4]),
+        Arc::clone(&v[5]),
+        Arc::clone(&v[6]),
+        Arc::clone(&v[7]),
+        Arc::clone(&v[8]),
+        Arc::clone(&v[9]),
+        Arc::clone(&v[10]),
+        Arc::clone(&v[11]),
+        Arc::clone(&v[12]),
+        Arc::clone(&v[13]),
+        Arc::clone(&v[14]),
+        Arc::clone(&v[15]),
+        Arc::clone(&v[16]),
+        Arc::clone(&v[17]),
+        Arc::clone(&v[18]),
+        Arc::clone(&v[19]),
+        Arc::clone(&v[20]),
+        Arc::clone(&v[21]),
+        Arc::clone(&v[22]),
+        Arc::clone(&v[23]),
+        Arc::clone(&v[24]),
+        Arc::clone(&v[25]),
+        Arc::clone(&v[26]),
+        Arc::clone(&v[27]),
+        Arc::clone(&v[28]),
+        Arc::clone(&v[29]),
+        Arc::clone(&v[30]),
+        Arc::clone(&v[31]),
+        Arc::clone(&v[32]),
+        Arc::clone(&v[33]),
+        Arc::clone(&v[34]),
+        Arc::clone(&v[35]),
+        Arc::clone(&v[36]),
+        Arc::clone(&v[37]),
+        Arc::clone(&v[38]),
+        Arc::clone(&v[39]),
+        Arc::clone(&v[40]),
+        Arc::clone(&v[41]),
+        Arc::clone(&v[42]),
+        Arc::clone(&v[43]),
+        Arc::clone(&v[44]),
+        Arc::clone(&v[45]),
+        Arc::clone(&v[46]),
+        Arc::clone(&v[47]),
+        Arc::clone(&v[48]),
+        Arc::clone(&v[49]),
+        Arc::clone(&v[50]),
+        Arc::clone(&v[51]),
+        Arc::clone(&v[52]),
+        Arc::clone(&v[53]),
+        Arc::clone(&v[54]),
+        Arc::clone(&v[55]),
+        Arc::clone(&v[56]),
+        Arc::clone(&v[57]),
+        Arc::clone(&v[58]),
+        Arc::clone(&v[59]),
+        Arc::clone(&v[60]),
+        Arc::clone(&v[61]),
+        Arc::clone(&v[62]),
+        Arc::clone(&v[63]),
+        Arc::clone(&v[64]),
+        Arc::clone(&v[65]),
+        Arc::clone(&v[66]),
+        Arc::clone(&v[67]),
+        Arc::clone(&v[68]),
+        Arc::clone(&v[69]),
+        Arc::clone(&v[70]),
+        Arc::clone(&v[71]),
+        Arc::clone(&v[72]),
+        Arc::clone(&v[73]),
+        Arc::clone(&v[74]),
+        Arc::clone(&v[75]),
+        Arc::clone(&v[76]),
+        Arc::clone(&v[77]),
+        Arc::clone(&v[78]),
+        Arc::clone(&v[79]),
+        Arc::clone(&v[80]),
+        Arc::clone(&v[81]),
+        Arc::clone(&v[82]),
+        Arc::clone(&v[83]),
+        Arc::clone(&v[84]),
+        Arc::clone(&v[85]),
+        Arc::clone(&v[86]),
+        Arc::clone(&v[87]),
+        Arc::clone(&v[88]),
+        Arc::clone(&v[89]),
+        Arc::clone(&v[90]),
+        Arc::clone(&v[91]),
+        Arc::clone(&v[92]),
+        Arc::clone(&v[93]),
+        Arc::clone(&v[94]),
+        Arc::clone(&v[95]),
+        Arc::clone(&v[96]),
+        Arc::clone(&v[97]),
+        Arc::clone(&v[98]),
+        Arc::clone(&v[99]),
+        Arc::clone(&v[100]),
+        Arc::clone(&v[101]),
+        Arc::clone(&v[102]),
+        Arc::clone(&v[103]),
+        Arc::clone(&v[104]),
+        Arc::clone(&v[105]),
+        Arc::clone(&v[106]),
+        Arc::clone(&v[107]),
+        Arc::clone(&v[108]),
+        Arc::clone(&v[109]),
+        Arc::clone(&v[110]),
+        Arc::clone(&v[111]),
+        Arc::clone(&v[112]),
+        Arc::clone(&v[113]),
+        Arc::clone(&v[114]),
+        Arc::clone(&v[115]),
+        Arc::clone(&v[116]),
+        Arc::clone(&v[117]),
+        Arc::clone(&v[118]),
+        Arc::clone(&v[119]),
+        Arc::clone(&v[120]),
+        Arc::clone(&v[121]),
+        Arc::clone(&v[122]),
+        Arc::clone(&v[123]),
+        Arc::clone(&v[124]),
+        Arc::clone(&v[125]),
+        Arc::clone(&v[126]),
+        Arc::clone(&v[127]),
+        Arc::clone(&v[128]),
+        Arc::clone(&v[129]),
+        Arc::clone(&v[130]),
+        Arc::clone(&v[131]),
+        Arc::clone(&v[132]),
+        Arc::clone(&v[133]),
+        Arc::clone(&v[134]),
+        Arc::clone(&v[135]),
+        Arc::clone(&v[136]),
+        Arc::clone(&v[137]),
+        Arc::clone(&v[138]),
+        Arc::clone(&v[139]),
+        Arc::clone(&v[140]),
+        Arc::clone(&v[141]),
+        Arc::clone(&v[142]),
+        Arc::clone(&v[143]),
+        Arc::clone(&v[144]),
+        Arc::clone(&v[145]),
+        Arc::clone(&v[146]),
+        Arc::clone(&v[147]),
+        Arc::clone(&v[148]),
+        Arc::clone(&v[149]),
+        Arc::clone(&v[150]),
+        Arc::clone(&v[151]),
+        Arc::clone(&v[152]),
+        Arc::clone(&v[153]),
+        Arc::clone(&v[154]),
+        Arc::clone(&v[155]),
+        Arc::clone(&v[156]),
+        Arc::clone(&v[157]),
+        Arc::clone(&v[158]),
+        Arc::clone(&v[159]),
+        Arc::clone(&v[160]),
+        Arc::clone(&v[161]),
+        Arc::clone(&v[162]),
+        Arc::clone(&v[163]),
+        Arc::clone(&v[164]),
+        Arc::clone(&v[165]),
+        Arc::clone(&v[166]),
+        Arc::clone(&v[167]),
+        Arc::clone(&v[168]),
+        Arc::clone(&v[169]),
+        Arc::clone(&v[170]),
+        Arc::clone(&v[171]),
+        Arc::clone(&v[172]),
+        Arc::clone(&v[173]),
+        Arc::clone(&v[174]),
+        Arc::clone(&v[175]),
+        Arc::clone(&v[176]),
+        Arc::clone(&v[177]),
+        Arc::clone(&v[178]),
+        Arc::clone(&v[179]),
+        Arc::clone(&v[180]),
+        Arc::clone(&v[181]),
+        Arc::clone(&v[182]),
+        Arc::clone(&v[183]),
+        Arc::clone(&v[184]),
+        Arc::clone(&v[185]),
+        Arc::clone(&v[186]),
+        Arc::clone(&v[187]),
+        Arc::clone(&v[188]),
+        Arc::clone(&v[189]),
+        Arc::clone(&v[190]),
+        Arc::clone(&v[191]),
+        Arc::clone(&v[192]),
+        Arc::clone(&v[193]),
+        Arc::clone(&v[194]),
+        Arc::clone(&v[195]),
+        Arc::clone(&v[196]),
+        Arc::clone(&v[197]),
+        Arc::clone(&v[198]),
+        Arc::clone(&v[199]),
+        Arc::clone(&v[200]),
+        Arc::clone(&v[201]),
+        Arc::clone(&v[202]),
+        Arc::clone(&v[203]),
+        Arc::clone(&v[204]),
+        Arc::clone(&v[205]),
+        Arc::clone(&v[206]),
+        Arc::clone(&v[207]),
+        Arc::clone(&v[208]),
+        Arc::clone(&v[209]),
+        Arc::clone(&v[210]),
+        Arc::clone(&v[211]),
+        Arc::clone(&v[212]),
+        Arc::clone(&v[213]),
+        Arc::clone(&v[214]),
+        Arc::clone(&v[215]),
+        Arc::clone(&v[216]),
+        Arc::clone(&v[217]),
+        Arc::clone(&v[218]),
+        Arc::clone(&v[219]),
+        Arc::clone(&v[220]),
+        Arc::clone(&v[221]),
+        Arc::clone(&v[222]),
+        Arc::clone(&v[223]),
+        Arc::clone(&v[224]),
+        Arc::clone(&v[225]),
+        Arc::clone(&v[226]),
+        Arc::clone(&v[227]),
+        Arc::clone(&v[228]),
+        Arc::clone(&v[229]),
+        Arc::clone(&v[230]),
+        Arc::clone(&v[231]),
+        Arc::clone(&v[232]),
+        Arc::clone(&v[233]),
+        Arc::clone(&v[234]),
+        Arc::clone(&v[235]),
+        Arc::clone(&v[236]),
+        Arc::clone(&v[237]),
+        Arc::clone(&v[238]),
+        Arc::clone(&v[239]),
+        Arc::clone(&v[240]),
+        Arc::clone(&v[241]),
+        Arc::clone(&v[242]),
+        Arc::clone(&v[243]),
+        Arc::clone(&v[244]),
+        Arc::clone(&v[245]),
+        Arc::clone(&v[246]),
+        Arc::clone(&v[247]),
+        Arc::clone(&v[248]),
+        Arc::clone(&v[249]),
+        Arc::clone(&v[250]),
+        Arc::clone(&v[251]),
+        Arc::clone(&v[252]),
+        Arc::clone(&v[243]),
+        Arc::clone(&v[254]),
+        Arc::clone(&v[255]),
+    ]
+}
+
+#[test]
+fn online_ext() {
+    // `Vec<String>` is wrapped inside a `Mutex` and `Arc`.
+    // `Mutex` provides synchronization, `Arc` provides lifetime so each
+    // thread participates in ownership over the `Mutex<Vec<String>>`
+
+    let start = SystemTime::now();
+
+    let step: usize = 128;
+
+    /*
+        let words1 = Arc::new(Mutex::new(vec![]));
+        let words2 = Arc::new(Mutex::new(vec![]));
+            let words_arr = [ words1, words2 ];
+    */
+    let words_arr = give_arc_arr(step.pow(3));
+
+    let mut threads = vec![];
+    for x in 0..step {
+        threads.push(thread::spawn({
+            //let clone1 = Arc::clone(&words_arr[0]);
+            //let clone2 = Arc::clone(&words_arr[1]);
+            //let mut clone_arr = [];
+            //let mut clone_arr : Vec<Arc::clone<Vec<[<u8>; 12]>>> = vec![];
+            //let mut clone_arr : Vec<Arc::clone<Mutex<Vec<[<u8>; 12]>>>> = vec![];
+            //for i in 0..words_arr.len() {
+            //clone_arr[i] = Arc::clone(&words_arr[i]);
+            //clone_arr[i].push(Arc::clone(&words_arr[i]));
+            //}
+            let clone_arr = give_arc_clone_arr(&words_arr);
+
+            move || {
+                let mut rng = ChaCha8Rng::from_entropy();
+                for j in 0..step {
+                    for k in 0..step {
+                        for l in 0..step {
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v1 = r_bytes[0];
+                            let v2 = r_bytes[1];
+                            let v3 = r_bytes[2];
+                            let v4 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v5 = r_bytes[0];
+                            let v6 = r_bytes[1];
+                            let v7 = r_bytes[2];
+                            let v8 = r_bytes[3];
+                            let r = rng.next_u32();
+                            let r_bytes = r.to_be_bytes();
+                            let v9 = r_bytes[0];
+                            let v10 = r_bytes[1];
+                            let v11 = r_bytes[2];
+                            let v12 = r_bytes[3];
+
+                            let index: usize = v1 as usize;
+                            let mut v = clone_arr[index].lock().unwrap();
+                            //v.push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
+                            v.push([v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]);
+
+                            /*
+                                                                                    if v1 % 2 == 0 {
+                                                                                        //let mut v = clone1.lock().unwrap();
+                                                                                        let mut v = clone_arr[0].lock().unwrap();
+                                                                                        v.push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
+                                                                                        //v.push(x.to_string());
+                                                                                    }
+                                                                                    else {
+                                                                                        //let mut v = clone2.lock().unwrap();
+                                                                                        let mut v = clone_arr[1].lock().unwrap();
+                                                                                        v.push( [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] );
+                                                                                        //v.push(x.to_string());
+                                                                                    }
+                            */
+                        } //end l
+                    } //end k
+                } //end j
+            }
+        }));
+    }
+    for t in threads {
+        t.join().unwrap();
+    }
+
+    sort_utils::end_and_print_time(start, "filled in values...");
+
+    let clone_arr = give_arc_clone_arr(&words_arr);
+
+    for i in 0..words_arr.len() {
+        let mut v = clone_arr[i].lock().unwrap();
+        //good confirmation step, but clutters print:
+        //println!("each array length {} and capacity {}",v.len(), v.capacity());
+    }
+
+    /*
+        //println!("{:?}", words_arr);
+            for i in 0..words_arr.len() {
+                //println!("each array length {} and capacity {}", words_arr[i].lock().unwrap().len(), words_arr[i].lock().unwrap().capacity());
+                //let lock = Arc::try_unwrap(words_arr[i]).expect("Lock still has multiple owners");
+                let lock = &words_arr[i].clone();
+                //let v = lock.into_inner().expect("Mutex cannot be locked");
+                println!("each array length {} and capacity {}",lock.len(), lock.capacity());
+            }
+    */
+
+    let start = SystemTime::now();
+
+    let mut threads = vec![];
+    for x in 0..=255 {
+        //sort all the pots. step doesn't line up with pots bc i can't build that many pots on my VM.
+        threads.push(thread::spawn({
+            let clone_arr = give_arc_clone_arr(&words_arr);
+
+            move || {
+                //println!("hoping to sort array {}", x);
+                let mut v = clone_arr[x].lock().unwrap();
+                //v.sort();
+                //v.sort_by_key(|&[a,b,c,d,e,f,g,_h,_i,_j,_k]| [a,b,c,d,e,f,g]);
+                v.sort_unstable();
+            }
+        }));
+    }
+    for t in threads {
+        t.join().unwrap();
+    }
+
+    sort_utils::end_and_print_time(start, "sorted...");
+
+    let start = SystemTime::now();
+
+    for i in 0..words_arr.len() {
+        let mut v = clone_arr[i].lock().unwrap();
+        assert!(sort_utils::is_sorted(&v));
+        /*
+        if i == 250 {
+        for j in 0..5 {
+            println!("{:?}", v[j]);
+        }
+        }
+        */
+    }
+
+    sort_utils::end_and_print_time(start, "confirmed sort...");
 }
