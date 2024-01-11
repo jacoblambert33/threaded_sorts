@@ -9,6 +9,8 @@ use std::sync::Mutex;
 
 use std::time::SystemTime;
 
+//use rayon::slice::ParallelSliceMut;
+
 #[derive(Clone, Copy)]
 struct WrapperBloomBits(*mut Vec<u64>);
 
@@ -65,15 +67,25 @@ fn t_bloom_bits() {
     // next largest prime is 68_719_476_767 which means i need one more u64 to hold those extra
     // values.
     // 1_073_741_825 instead of ..24.
+
+    /*
+    // scenario 1: 8GB table, so 1GB or 2**30 entries that are 64 bits or 8 bytes.
+    //  this allows 68 billion addressable entries. i.e., n is 68B.
+    //
     let n_u64s_cap = 1_073_741_825;
     let n_prime_cap = 68_719_476_767;
+    */
 
-    let n_threads = 2; //2; //128; //64; //64; //32; //4; //16; //8; //4;
-                       //
+    // scenario 2: 12GB table (biggest on VM) so 1.5GB, then
+    let n_u64s_cap: usize = 1_610_612_737; //...736 plus one more to fit the extra up to prime.
+    let n_prime_cap: usize = 103_079_215_111; //  103_079_215_104;
+
+    let n_threads = 128; //2; //128; //64;//128; //2; //128; //64; //64; //32; //4; //16; //8; //4;
+                         //
     println!("{} threads used.", n_threads);
 
     // change the fn above get_prime_tbl_sz when you want to add values
-    //let prime_tbl = [ 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79 ];
+    //let prime_tbl = [ 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101 ];
     //let prime_tbl = [ 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997 ];
     //let prime_tbl = [ 23929, 41299, 23041, 28429, 43159, 17137, 31039, 20543, 10247, 16417, 42209, 47609, 28753, 18517, 48413, 19273, 36451, 12959, 39113, ];
     //pretty good.
@@ -84,7 +96,31 @@ fn t_bloom_bits() {
     let prime_tbl = [
         2333, 5077, 5623, 6899, 7717, 8599, 10099, 10753, 11903, 12689, 13339, 15551, 18089, 19447,
         22783, 24281, 29641, 32621, 35999, 36761, 39157, 42937, 49789,
-    ];
+    ]; //23
+       /*let prime_tbl = [
+           2333, 5077, 6899, 7717, 8599, 12689, 15551, 18089, 19447,
+           22783, 29641, 32621, 35999, 36761, 39157, 42937, 49789,
+       ]; //17 */
+    /*let prime_tbl = [
+        2333, 5077, 7717,  12689, 18089, 19447,
+        22783, 29641, 32621, 35999, 39157, 42937, 49789,
+    ]; // 13 */
+    /*
+    let prime_tbl = [
+        2333, 7717, 12689, 19447,
+        22783, 29641, 32621, 42937, 49789,
+    ]; //9 */
+    /*let prime_tbl = [
+        2333, 19447,
+        22783, 32621, 49789,
+    ]; //5*/
+    /* let prime_tbl = [
+        2333, 22783, 49789,
+    ]; //3 */
+    /*let prime_tbl = [
+        2333,22783
+    ]; //2 */
+
     const K_HASHES: usize = get_prime_tbl_sz();
     //let prime_tbl : Vec<u32> = vec![ 7, 11, 13, 17, 19 ];
 
@@ -99,7 +135,10 @@ fn t_bloom_bits() {
     let c = hash_tbl_sz as f64 / sz_set as f64;
     println!("c = n/m: {}", c);
     //println!("false hit prob: {}", f64::powi(0.6185_f64, c as i32)); //.powf(c as f64));
-    println!("false hit prob: {}", f64::powf(0.6185_f64, c)); //.powf(c as f64));
+    println!(
+        "false hit prob (assuming optimal k): {}",
+        f64::powf(0.6185_f64, c)
+    ); //.powf(c as f64));
 
     let k = c * 2_f64.ln();
     println!("optimal k value (k=cln(2)) is: {}", k);
@@ -131,8 +170,8 @@ fn t_bloom_bits() {
     }
 }
 
-// takes a while, probably due to setting bits - but could compare crossbeam vs std thread impl. 
-// also, need to look at performance improvements generally. 
+// takes a while, probably due to setting bits - but could compare crossbeam vs std thread impl.
+// also, need to look at performance improvements generally.
 fn create_bloom_bits(
     v_len_cap: usize,
     hash_table_sz: usize,
@@ -166,6 +205,7 @@ fn create_bloom_bits(
     // bit string of len 64, so i get 8 times more capacity. but i don't know if it'll be slower.
     let mut bloom_filter: Vec<u64> = vec![0; v_len_cap];
 
+    /*
     //cheat and put in a sentinel:
     let cheat : u64 = 77777777;
     const PT_SZ: usize = get_prime_tbl_sz();
@@ -178,8 +218,7 @@ fn create_bloom_bits(
         bloom_filter[hash_tbl[i] as usize / 64_usize] |=
         1_u64 << (hash_tbl[i] as usize % 64_usize);
     }
-             
-         
+     */
 
     let wrapped_bf: WrapperBloomBits = WrapperBloomBits(&mut bloom_filter);
 
@@ -187,13 +226,13 @@ fn create_bloom_bits(
     //let prime_tbl = [ 7, 11, 13, 17, 19 ];
     //const k_hashes : usize  = 5;
     for _x in 0..n_threads {
+        let mut rng = ChaCha8Rng::seed_from_u64(_x as u64 + 512_u64);
         threads.push(thread::spawn({
             move || {
                 let wrapped_bf = wrapped_bf;
 
                 //let mut rng = ChaCha8Rng::from_entropy();
                 //let mut rng = ChaCha8Rng::from_seed([0x0; 32]);
-                let mut rng = ChaCha8Rng::seed_from_u64(1);
                 for _j in 0..byte_range {
                     for _k in 0..byte_range {
                         for _l in 0..byte_range {
@@ -287,22 +326,24 @@ fn compare_to_exists_bits(
     let _ = crossbeam::scope(|scope| {
         for _i in 0..n_threads {
             let v = v;
+            let mut rng = ChaCha8Rng::seed_from_u64(_i as u64);
             //this expected to get me past borrowed after move:
             let hit_counter = Arc::clone(&hit_counter);
             let hit_bag = Arc::clone(&hit_bag);
             scope.spawn(move |_| {
                 //let mut rng = ChaCha8Rng::from_entropy();
                 //let mut rng = ChaCha8Rng::from_seed([0xf; 32]);
-                let mut rng = ChaCha8Rng::seed_from_u64(7);
                 for _j in 0..byte_range {
                     for _k in 0..byte_range {
                         for _l in 0..byte_range {
-                            let mut r = rng.next_u64();
+                            let r = rng.next_u64();
 
+                            /*
                             //cheat and put in a sentinel:
-                            if _i == 0 && _j == 0 && _k == 0 && _l == 0 { 
+                            if _i == 0 && _j == 0 && _k == 0 && _l == 0 {
                                 r = 77777777;
                             }
+                            */
 
                             const PT_SZ: usize = get_prime_tbl_sz();
                             let mut hash_tbl = [0; PT_SZ];
@@ -366,20 +407,25 @@ fn match_hits(mut v: Vec<u64>, n_threads: usize) {
 
     thread::scope(|s| {
         for _x in 0..n_threads {
+            let mut rng = ChaCha8Rng::seed_from_u64(_x as u64 + 512_u64);
             let v = &v;
             s.spawn(move || {
                 //want to move to copy i to each thread, giving it an index.
                 //let mut rng = ChaCha8Rng::from_entropy();
                 //let mut rng = ChaCha8Rng::from_seed([0x0; 32]);
-                let mut rng = ChaCha8Rng::seed_from_u64(1);
                 for _j in 0..byte_range {
                     for _k in 0..byte_range {
                         for _l in 0..byte_range {
                             let r = rng.next_u64();
 
+                            if r == 11796645308897186027 {
+                                println!("true match on \t {}\n i know for 128 threads and with these random seeds there will be exactly one true match. using this to vary on false positives by tweaking my number and character of primes.\n", r);
+                            }
+
+                            /*
                             if v.contains(&r) {
                                 println!("true match on \t {}", r);
-                            }
+                            } */
                         } //end l
                     } //end k
                 } //end j
@@ -732,4 +778,29 @@ fn _compare_to_exists(v: &Vec<bool>) -> usize {
 
     let total_hits = *hit_counter.lock().unwrap();
     total_hits
+}
+
+#[test]
+fn find_overlap_rngs() {
+    const LEN: usize = 1_000_000_000;
+
+    let v: Vec<u64> = Vec::new();
+    for i in 11..100 {
+        let mut rng = ChaCha8Rng::seed_from_u64(i);
+        for _ in 0..LEN {
+            let r = rng.next_u64();
+            /*
+            if r % 100_000_000 == 0 {
+                println!("found something memorable: {}", r);
+            }*/
+            if r == 559670132500000000 {
+                println!("\n\tfound gold\n");
+            }
+            v.push(r);
+        }
+    }
+
+    assert_eq!(v.len(), LEN);
+
+    //v.par_sort();
 }
